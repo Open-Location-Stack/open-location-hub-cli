@@ -15,8 +15,8 @@ Current scope:
 ## Build
 
 ```bash
-make build
-make build-all
+just build
+just build-all
 ```
 
 Artifacts are written to `dist/`.
