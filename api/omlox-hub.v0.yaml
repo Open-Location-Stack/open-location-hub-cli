@@ -1,0 +1,1418 @@
+openapi: 3.1.0
+info:
+  title: Open Location Hub API
+  version: 0.1.1
+  description: |
+    REST API documentation for Open Location Hub.
+
+    This API provides resource management for zones, trackables, location
+    providers, and fences, together with provider ingest endpoints and a
+    JSON-RPC control-plane interface.
+
+    Parts of this API follow the omlox v2 hub model and terminology where that
+    improves interoperability with omlox-compatible systems.
+
+    This contract is independently authored and is not an official PI/PNO
+    publication or certification artifact. `omlox` is a trademark of
+    PROFIBUS Nutzerorganisation e.V.
+externalDocs:
+  description: Companion OMLOX protocol notes for WebSocket, MQTT, and RPC mapping details.
+  url: ./README.md
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+tags:
+  - name: zones
+    description: Manage OMLOX zones, including georeferenced and proximity-capable zone definitions.
+  - name: trackables
+    description: Manage trackable definitions and locating preferences used by ingest and eventing flows.
+  - name: providers
+    description: Manage location providers and receive location or proximity ingest payloads.
+  - name: fences
+    description: Manage fence definitions used for derived fence-event publication.
+  - name: rpc
+    description: Inspect reachable JSON-RPC methods and invoke hub-owned or MQTT-bridged control-plane functionality.
+paths:
+  /v2/zones:
+    get:
+      tags: [zones]
+      operationId: listZones
+      summary: List zones
+      description: Returns the complete zone registry known to the hub.
+      responses:
+        '200':
+          description: Zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Zone'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [zones]
+      operationId: createZone
+      summary: Create a zone
+      description: |
+        Creates a zone definition. The request may describe either a fully
+        configured zone or a partially configured zone that will be completed
+        later.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZoneWrite'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/zones/{zoneId}:
+    parameters:
+      - $ref: '#/components/parameters/ZoneId'
+    get:
+      tags: [zones]
+      operationId: getZone
+      summary: Get a zone
+      description: Returns a single zone by UUID.
+      responses:
+        '200':
+          description: Zone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [zones]
+      operationId: updateZone
+      summary: Update a zone
+      description: Replaces the stored zone document for the supplied UUID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZoneWrite'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [zones]
+      operationId: deleteZone
+      summary: Delete a zone
+      description: Removes a zone and any cached local georeferencing transform derived from it.
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/trackables:
+    get:
+      tags: [trackables]
+      operationId: listTrackables
+      summary: List trackables
+      description: Returns the complete trackable registry known to the hub.
+      responses:
+        '200':
+          description: Trackables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trackable'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [trackables]
+      operationId: createTrackable
+      summary: Create a trackable
+      description: Creates a trackable definition used by locating and fence processing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackableWrite'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trackable'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/trackables/{trackableId}:
+    parameters:
+      - $ref: '#/components/parameters/TrackableId'
+    get:
+      tags: [trackables]
+      operationId: getTrackable
+      summary: Get a trackable
+      description: Returns a single trackable by UUID.
+      responses:
+        '200':
+          description: Trackable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trackable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [trackables]
+      operationId: updateTrackable
+      summary: Update a trackable
+      description: Replaces the stored trackable document for the supplied UUID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackableWrite'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trackable'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [trackables]
+      operationId: deleteTrackable
+      summary: Delete a trackable
+      description: Removes a trackable definition from the hub.
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/providers:
+    get:
+      tags: [providers]
+      operationId: listProviders
+      summary: List providers
+      description: Returns the complete location-provider registry known to the hub.
+      responses:
+        '200':
+          description: Providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationProvider'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [providers]
+      operationId: createProvider
+      summary: Create a provider
+      description: Creates a location-provider definition used by ingest and downstream publication.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationProviderWrite'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationProvider'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/providers/{providerId}:
+    parameters:
+      - $ref: '#/components/parameters/ProviderId'
+    get:
+      tags: [providers]
+      operationId: getProvider
+      summary: Get a provider
+      description: Returns a single location provider by identifier.
+      responses:
+        '200':
+          description: Provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationProvider'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [providers]
+      operationId: updateProvider
+      summary: Update a provider
+      description: Replaces the stored location-provider document for the supplied identifier.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationProviderWrite'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationProvider'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [providers]
+      operationId: deleteProvider
+      summary: Delete a provider
+      description: Removes a location-provider definition from the hub.
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/providers/locations:
+    post:
+      tags: [providers]
+      operationId: postProviderLocations
+      summary: Ingest locations
+      description: Accepts provider location updates, validates them, stores latest state, and republishes derived variants.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Location'
+      responses:
+        '202':
+          description: Accepted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/providers/proximities:
+    post:
+      tags: [providers]
+      operationId: postProviderProximities
+      summary: Ingest proximities
+      description: Accepts proximity observations, resolves them to zones where possible, and emits derived locations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Proximity'
+      responses:
+        '202':
+          description: Accepted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/fences:
+    get:
+      tags: [fences]
+      operationId: listFences
+      summary: List fences
+      description: Returns the complete fence registry known to the hub.
+      responses:
+        '200':
+          description: Fences
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Fence'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [fences]
+      operationId: createFence
+      summary: Create a fence
+      description: Creates a fence used for derived region-entry and region-exit processing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FenceWrite'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fence'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/fences/{fenceId}:
+    parameters:
+      - $ref: '#/components/parameters/FenceId'
+    get:
+      tags: [fences]
+      operationId: getFence
+      summary: Get a fence
+      description: Returns a single fence by UUID.
+      responses:
+        '200':
+          description: Fence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fence'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [fences]
+      operationId: updateFence
+      summary: Update a fence
+      description: Replaces the stored fence document for the supplied UUID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FenceWrite'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fence'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [fences]
+      operationId: deleteFence
+      summary: Delete a fence
+      description: Removes a fence from the hub.
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/rpc/available:
+    get:
+      tags: [rpc]
+      operationId: getRPCAvailable
+      summary: List available RPC methods
+      description: |
+        Returns the currently reachable JSON-RPC method registry known to the
+        hub. The registry includes hub-owned methods implemented locally plus
+        MQTT-discovered external handlers. Treat this endpoint as sensitive
+        because it reveals reachable control functions and handler identifiers.
+      responses:
+        '200':
+          description: Available methods grouped by method name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RpcAvailableMethods'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v2/rpc:
+    put:
+      tags: [rpc]
+      operationId: putRPC
+      summary: Invoke JSON-RPC
+      description: |
+        Sends a JSON-RPC 2.0 request to the hub control plane. Depending on the
+        method and `_handler_id`, the hub may handle the request locally, bridge
+        it to MQTT, or do both and aggregate responses. JSON-RPC protocol and
+        OMLOX extension errors are returned in the `200` response body as
+        JSON-RPC error envelopes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonRpcRequest'
+      responses:
+        '200':
+          description: JSON-RPC result or JSON-RPC error.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/JsonRpcSuccessResponse'
+                  - $ref: '#/components/schemas/JsonRpcErrorResponse'
+        '204':
+          description: Notification accepted. Returned when `id` and `_caller_id` are omitted, so no response payload is expected.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Authentication uses a JWT bearer token. Authorization is enforced by the
+        hub's server-side permission registry instead of OAuth
+        scope declarations in this OpenAPI document.
+  parameters:
+    ZoneId:
+      in: path
+      name: zoneId
+      required: true
+      description: UUID of the zone resource.
+      schema:
+        type: string
+        format: uuid
+    TrackableId:
+      in: path
+      name: trackableId
+      required: true
+      description: UUID of the trackable resource.
+      schema:
+        type: string
+        format: uuid
+    ProviderId:
+      in: path
+      name: providerId
+      required: true
+      description: Stable provider identifier chosen by the client.
+      schema:
+        type: string
+    FenceId:
+      in: path
+      name: fenceId
+      required: true
+      description: UUID of the fence resource.
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: The request body or path parameters were invalid for the targeted operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: The request did not include a valid bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: The bearer token was valid but does not grant access to the targeted resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: The requested resource identifier does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      description: Standard error envelope returned by the REST API.
+      required: [type, code]
+      properties:
+        type:
+          type: string
+          description: Stable machine-readable error type.
+        code:
+          type: integer
+          description: HTTP status code associated with the error.
+        message:
+          type: string
+          description: Human-readable error message.
+
+    ExtensionProperties:
+      type: object
+      description: Free-form extension object preserved as-is by the hub.
+      additionalProperties: true
+
+    StringIdList:
+      type: array
+      description: List of opaque string identifiers.
+      items:
+        type: string
+
+    GeoJsonPosition2D:
+      type: array
+      description: GeoJSON 2D coordinate tuple in `[x, y]` order.
+      minItems: 2
+      maxItems: 2
+      items:
+        type: number
+    GeoJsonPosition3D:
+      type: array
+      description: GeoJSON 3D coordinate tuple in `[x, y, z]` order.
+      minItems: 3
+      maxItems: 3
+      items:
+        type: number
+    GeoJsonPosition:
+      description: GeoJSON coordinate tuple used by `Point`, `LineString`, and `Polygon`.
+      oneOf:
+        - $ref: '#/components/schemas/GeoJsonPosition2D'
+        - $ref: '#/components/schemas/GeoJsonPosition3D'
+
+    PositiveNumber:
+      type: number
+      description: Positive numeric value greater than zero.
+      minimum: 0
+      exclusiveMinimum: true
+
+    PositiveOrMinusOne:
+      description: Positive numeric value or `-1` when the OMLOX model allows disabling the behavior.
+      anyOf:
+        - type: number
+          enum: [-1]
+        - $ref: '#/components/schemas/PositiveNumber'
+
+    Point:
+      type: object
+      description: GeoJSON point geometry.
+      required: [type, coordinates]
+      properties:
+        type:
+          type: string
+          const: Point
+          description: GeoJSON type discriminator.
+        coordinates:
+          $ref: '#/components/schemas/GeoJsonPosition'
+
+    LineString:
+      type: object
+      description: GeoJSON line geometry.
+      required: [type, coordinates]
+      properties:
+        type:
+          type: string
+          const: LineString
+        coordinates:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/GeoJsonPosition'
+
+    Polygon:
+      type: object
+      description: GeoJSON polygon geometry. The first and last point of each ring are expected to be equal.
+      required: [type, coordinates]
+      properties:
+        type:
+          type: string
+          const: Polygon
+        coordinates:
+          type: array
+          minItems: 1
+          items:
+            type: array
+            minItems: 4
+            items:
+              $ref: '#/components/schemas/GeoJsonPosition'
+
+    GroundControlPoint:
+      type: object
+      description: |
+        Mapping between a WGS84 coordinate and the corresponding local zone
+        coordinate. Use multiple control points to define the local-to-global
+        transform for a zone.
+      required: [wgs84, local]
+      properties:
+        wgs84:
+          $ref: '#/components/schemas/Point'
+        local:
+          $ref: '#/components/schemas/Point'
+
+    LocatingRule:
+      type: object
+      description: Trackable locating rule used to prioritize candidate locations from providers.
+      required: [expression, priority]
+      properties:
+        expression:
+          type: string
+          description: >
+            Rule expression. Supported properties include `accuracy`,
+            `provider_id`, `type`, `source`, `floor`, `speed`, and
+            `timestamp_diff`.
+        priority:
+          type: number
+          description: Lower values indicate higher precedence.
+
+    Zone:
+      type: object
+      description: Stored zone resource returned by the REST API.
+      required: [id, type]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Hub-assigned or client-supplied UUID. Hub-generated values are UUIDv7 so they remain time-sortable.
+        foreign_id:
+          type: string
+          description: External identifier from an upstream system.
+        position:
+          $ref: '#/components/schemas/Point'
+        radius:
+          type: number
+          description: Radius in meters when the zone is modeled as a point with extent.
+        ground_control_points:
+          type: array
+          description: Local-to-WGS84 reference pairs used for georeferencing local coordinates.
+          items:
+            $ref: '#/components/schemas/GroundControlPoint'
+        incomplete_configuration:
+          type: boolean
+          description: When true, the zone may omit fields required for a fully configured zone.
+        measurement_timestamp:
+          type: string
+          format: date-time
+          description: Timestamp describing when the zone definition was measured or last updated.
+        type:
+          type: string
+          description: >
+            Positioning system type. Common values include `uwb`, `wifi`,
+            `rfid`, and `ibeacon`.
+        site:
+          type: string
+          description: Optional site identifier.
+        building:
+          type: string
+          description: Optional building identifier.
+        floor:
+          type: number
+          description: Optional floor number or level indicator.
+        name:
+          type: string
+          description: Human-readable zone name.
+        description:
+          type: string
+          description: Human-readable zone description.
+        address:
+          type: string
+          description: Optional postal-style address or location hint.
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+        wgs84_height:
+          type: number
+          description: Optional zone altitude in meters relative to WGS84.
+
+    ZoneWrite:
+      type: object
+      description: Mutable fields used to create or replace a zone resource.
+      required: [type]
+      allOf:
+        - if:
+            properties:
+              type:
+                enum: [rfid, ibeacon]
+            required: [type]
+          then:
+            required: [position]
+            not:
+              required: [ground_control_points]
+        - if:
+            properties:
+              type:
+                not:
+                  enum: [rfid, ibeacon]
+              incomplete_configuration:
+                const: false
+            required: [type, incomplete_configuration]
+          then:
+            required: [ground_control_points]
+        - if:
+            properties:
+              type:
+                not:
+                  enum: [rfid, ibeacon]
+            required: [type]
+            not:
+              required: [incomplete_configuration]
+          then:
+            required: [ground_control_points]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: If omitted on create, the hub generates a time-sortable UUIDv7.
+        foreign_id:
+          type: string
+          description: External identifier from an upstream system.
+        position:
+          $ref: '#/components/schemas/Point'
+        radius:
+          type: number
+          description: Radius in meters when the zone is modeled as a point with extent.
+        ground_control_points:
+          type: array
+          description: Local-to-WGS84 reference pairs required for fully configured non-proximity zones.
+          items:
+            $ref: '#/components/schemas/GroundControlPoint'
+        incomplete_configuration:
+          type: boolean
+        measurement_timestamp:
+          type: string
+          format: date-time
+          description: Timestamp describing when the zone definition was measured or last updated.
+        type:
+          type: string
+          description: OMLOX positioning technology or zone type such as `uwb`, `wifi`, `rfid`, or `ibeacon`.
+        site:
+          type: string
+        building:
+          type: string
+        floor:
+          type: number
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+        wgs84_height:
+          type: number
+
+    Trackable:
+      type: object
+      description: Stored trackable resource returned by the REST API.
+      required: [id, type]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Hub-generated trackable identifiers are UUIDv7 when the hub creates them.
+        type:
+          type: string
+          enum: [omlox, virtual]
+        name:
+          type: string
+        geometry:
+          $ref: '#/components/schemas/Polygon'
+        extrusion:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        location_providers:
+          $ref: '#/components/schemas/StringIdList'
+          description: Preferred providers considered when deriving trackable locations.
+        fence_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_tolerance:
+          $ref: '#/components/schemas/PositiveNumber'
+        tolerance_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_delay:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        radius:
+          type: number
+          description: |
+            Collision and fallback-geometry radius in meters. When present, this
+            overrides the runtime default collision radius for this trackable.
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+        locating_rules:
+          type: array
+          description: Ordered locating rules applied when multiple candidate locations exist.
+          items:
+            $ref: '#/components/schemas/LocatingRule'
+
+    TrackableWrite:
+      type: object
+      description: Mutable fields used to create or replace a trackable resource.
+      required: [type]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: If omitted on create, the hub generates a time-sortable UUIDv7.
+        type:
+          type: string
+          enum: [omlox, virtual]
+        name:
+          type: string
+        geometry:
+          $ref: '#/components/schemas/Polygon'
+        extrusion:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        location_providers:
+          $ref: '#/components/schemas/StringIdList'
+          description: Preferred providers considered when deriving trackable locations.
+        fence_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_tolerance:
+          $ref: '#/components/schemas/PositiveNumber'
+        tolerance_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_delay:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        radius:
+          type: number
+          description: |
+            Collision and fallback-geometry radius in meters. When present, this
+            overrides the runtime default collision radius for this trackable.
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+        locating_rules:
+          type: array
+          description: Ordered locating rules applied when multiple candidate locations exist.
+          items:
+            $ref: '#/components/schemas/LocatingRule'
+
+    LocationProvider:
+      type: object
+      description: Stored location-provider resource returned by the REST API.
+      required: [id, type]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        name:
+          type: string
+        sensors:
+          $ref: '#/components/schemas/ExtensionProperties'
+          description: Provider-specific sensor metadata preserved by the hub.
+        fence_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_tolerance:
+          $ref: '#/components/schemas/PositiveNumber'
+        tolerance_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_delay:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+
+    LocationProviderWrite:
+      type: object
+      description: Mutable fields used to create or replace a location-provider resource.
+      required: [id, type]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        name:
+          type: string
+        sensors:
+          $ref: '#/components/schemas/ExtensionProperties'
+          description: Provider-specific sensor metadata preserved by the hub.
+        fence_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_tolerance:
+          $ref: '#/components/schemas/PositiveNumber'
+        tolerance_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_delay:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+
+    Location:
+      type: object
+      description: Provider location observation accepted by ingest and reused in derived outputs.
+      required: [position, source, provider_type, provider_id]
+      properties:
+        position:
+          $ref: '#/components/schemas/Point'
+        source:
+          type: string
+          description: Source locator or sensor identifier that produced the observation.
+        provider_type:
+          type: string
+          description: Provider technology or implementation type.
+        provider_id:
+          type: string
+          description: Stable provider identifier.
+        trackables:
+          $ref: '#/components/schemas/StringIdList'
+          description: Trackables associated with the observation, when already known.
+        timestamp_generated:
+          type: string
+          format: date-time
+          description: Timestamp when the provider generated the observation.
+        timestamp_sent:
+          type: string
+          format: date-time
+          description: Timestamp when the provider sent the observation to the hub.
+        crs:
+          type: string
+          description: Valid EPSG identifier or `local`. Omitted values are treated as `local` by the current implementation.
+        associated:
+          type: boolean
+          description: Indicates whether the location has already been associated with a trackable.
+        accuracy:
+          type: number
+          description: Estimated positional accuracy in meters.
+        floor:
+          type: number
+          description: Optional floor number or level indicator.
+        true_heading:
+          type: number
+          description: Heading in degrees relative to true north.
+        magnetic_heading:
+          type: number
+          description: Heading in degrees relative to magnetic north.
+        heading_accuracy:
+          type: number
+          description: Estimated heading accuracy in degrees.
+        elevation_ref:
+          type: string
+          enum: [floor, wgs84]
+          description: Reference system for altitude-like values carried in the geometry.
+        speed:
+          type: number
+          description: Estimated speed in meters per second. Derived hub outputs may also populate this from normalized track movement.
+        course:
+          type: number
+          description: Travel course in degrees. Derived hub outputs may also populate this from normalized track movement.
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+
+    Proximity:
+      type: object
+      description: Provider proximity observation used for zone-based position derivation.
+      required: [source, provider_type, provider_id]
+      properties:
+        source:
+          type: string
+          description: Source locator or sensor identifier that produced the observation.
+        provider_type:
+          type: string
+          description: Provider technology or implementation type.
+        provider_id:
+          type: string
+          description: Stable provider identifier.
+        timestamp_generated:
+          type: string
+          format: date-time
+          description: Timestamp when the provider generated the observation.
+        timestamp_sent:
+          type: string
+          format: date-time
+          description: Timestamp when the provider sent the observation to the hub.
+        accuracy:
+          type: number
+          description: Estimated confidence or accuracy value supplied by the provider.
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+
+    Fence:
+      type: object
+      description: Stored fence resource returned by the REST API.
+      required: [id, region]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Hub-generated fence identifiers are UUIDv7 when the hub creates them.
+        region:
+          oneOf:
+            - $ref: '#/components/schemas/Polygon'
+            - $ref: '#/components/schemas/Point'
+          description: Fence geometry expressed as either a polygon or a point-plus-radius.
+        radius:
+          type: number
+          description: Radius in meters when `region` is a point.
+        extrusion:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        floor:
+          type: number
+          description: Optional floor number or level indicator.
+        foreign_id:
+          type: string
+        name:
+          type: string
+        timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_tolerance:
+          $ref: '#/components/schemas/PositiveNumber'
+        tolerance_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_delay:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        crs:
+          type: string
+          description: Valid EPSG identifier or `local`. Omitted values are treated as `EPSG:4326`.
+        zone_id:
+          type: string
+          description: Required when `crs` is `local`.
+        elevation_ref:
+          type: string
+          enum: [floor, wgs84]
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+
+    FenceWrite:
+      type: object
+      description: Mutable fields used to create or replace a fence resource.
+      required: [region]
+      allOf:
+        - if:
+            properties:
+              crs:
+                const: local
+            required: [crs]
+          then:
+            required: [zone_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: If omitted on create, the hub generates a time-sortable UUIDv7.
+        region:
+          oneOf:
+            - $ref: '#/components/schemas/Polygon'
+            - $ref: '#/components/schemas/Point'
+          description: Fence geometry expressed as either a polygon or a point-plus-radius.
+        radius:
+          type: number
+        extrusion:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        floor:
+          type: number
+        foreign_id:
+          type: string
+        name:
+          type: string
+        timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_tolerance:
+          $ref: '#/components/schemas/PositiveNumber'
+        tolerance_timeout:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        exit_delay:
+          $ref: '#/components/schemas/PositiveOrMinusOne'
+        crs:
+          type: string
+          description: Valid EPSG identifier or `local`. Omitted values are treated as `EPSG:4326`.
+        zone_id:
+          type: string
+          description: Required when `crs` is `local`.
+        elevation_ref:
+          type: string
+          enum: [floor, wgs84]
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+
+    FenceEvent:
+      type: object
+      description: Derived fence membership event published by the hub.
+      required: [id, fence_id, event_type]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Hub-generated fence event identifiers are UUIDv7 so downstream consumers can sort them by issue time.
+        fence_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          enum: [region_entry, region_exit]
+        provider_id:
+          type: string
+        trackable_id:
+          type: string
+        trackables:
+          $ref: '#/components/schemas/StringIdList'
+        foreign_id:
+          type: string
+        entry_time:
+          type: string
+          format: date-time
+        exit_time:
+          type: string
+          format: date-time
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+
+    Collision:
+      type: object
+      description: Collision participant snapshot used by future collision-event modeling.
+      required: [id, object_type, position, geometry]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Hub-generated collision event identifiers are UUIDv7 so downstream consumers can sort them by issue time.
+        object_type:
+          type: string
+        position:
+          $ref: '#/components/schemas/Point'
+        geometry:
+          $ref: '#/components/schemas/Polygon'
+        floor:
+          type: number
+
+    CollisionEvent:
+      type: object
+      description: Collision event model reserved for future collision processing support.
+      required: [id, collision_type, collisions]
+      properties:
+        id:
+          type: string
+          format: uuid
+        collision_type:
+          type: string
+          enum: [collision_start, colliding, collision_end]
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        collision_time:
+          type: string
+          format: date-time
+        collisions:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/Collision'
+        collision_area:
+          oneOf:
+            - $ref: '#/components/schemas/LineString'
+            - $ref: '#/components/schemas/Point'
+        center_distance:
+          type: number
+          description: Approximate center-to-center separation in meters at evaluation time.
+
+    TrackableMotion:
+      type: object
+      description: Derived trackable motion payload published by the hub.
+      required: [id, location]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        extrusion:
+          type: number
+        geometry:
+          $ref: '#/components/schemas/Polygon'
+        location:
+          $ref: '#/components/schemas/Location'
+        properties:
+          $ref: '#/components/schemas/ExtensionProperties'
+
+    RpcAvailableMethodsEntry:
+      type: object
+      description: MQTT-discovered handler IDs for a single JSON-RPC method name.
+      required: [handler_id]
+      properties:
+        handler_id:
+          type: array
+          items:
+            type: string
+    RpcAvailableMethods:
+      type: object
+      description: Mapping of JSON-RPC method name to currently reachable handler IDs known to the hub.
+      additionalProperties:
+        $ref: '#/components/schemas/RpcAvailableMethodsEntry'
+
+    JsonRpcRequest:
+      type: object
+      description: JSON-RPC 2.0 request accepted by the hub control plane.
+      required: [jsonrpc, method]
+      properties:
+        jsonrpc:
+          type: string
+          const: '2.0'
+          description: JSON-RPC protocol version.
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: number
+          description: Request identifier. Omit together with `_caller_id` to send a notification.
+        method:
+          type: string
+          description: JSON-RPC method name such as `com.omlox.ping`, `com.omlox.identify`, `com.omlox.core.xcmd`, or a deployment-specific vendor method.
+        params:
+          type: object
+          description: Method-specific parameters plus supported OMLOX bridge extensions.
+          additionalProperties: true
+          properties:
+            _timeout:
+              type: number
+              description: Maximum time in milliseconds to wait for responses when the request expects a result.
+            _aggregation:
+              type: string
+              description: Response aggregation mode used when multiple handlers may answer. `_handler_id` and `_aggregation` cannot be combined.
+              enum:
+                - _all_within_timeout
+                - _return_first_success
+                - _return_first_error
+            _handler_id:
+              type: string
+              description: Optional explicit handler identifier for directed invocation. Use the value returned by `GET /v2/rpc/available` to target a specific handler, including `open-location-hub` for local built-in methods.
+            _caller_id:
+              type: string
+              description: Caller identifier used to correlate MQTT responses. Omit together with `id` to send a notification.
+
+    JsonRpcErrorObject:
+      type: object
+      description: Standard JSON-RPC error object.
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          additionalProperties: true
+
+    JsonRpcSuccessResponse:
+      type: object
+      description: JSON-RPC success envelope returned by the hub control plane.
+      required: [jsonrpc, id, result]
+      properties:
+        jsonrpc:
+          type: string
+          const: '2.0'
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: number
+        result:
+          additionalProperties: true
+
+    JsonRpcErrorResponse:
+      type: object
+      description: JSON-RPC error envelope returned by the hub control plane.
+      required: [jsonrpc, id, error]
+      properties:
+        jsonrpc:
+          type: string
+          const: '2.0'
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: number
+        error:
+          $ref: '#/components/schemas/JsonRpcErrorObject'

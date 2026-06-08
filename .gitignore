@@ -1,0 +1,26 @@
+dist/
+bin/
+
+# OS files
+.DS_Store
+
+# Editor settings
+.idea/
+.vscode/
+
+# Environment overrides
+.env
+.env.local
+.env.*.local
+
+# Go build and test artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+cover.out
+*.coverprofile
