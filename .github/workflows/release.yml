@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+      - "*/*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Just
+        uses: extractions/setup-just@v3
+
+      - name: Build release binaries
+        run: just clean && VERSION="${GITHUB_REF_NAME}" just build-all
+
+      - name: Package release artifacts
+        shell: bash
+        run: |
+          mkdir -p release
+          for file in dist/*; do
+            base="$(basename "$file")"
+            stem="${base%.exe}"
+            versioned="${stem}-${GITHUB_REF_NAME}"
+            if [[ "$base" == *.exe ]]; then
+              zip -j "release/${versioned}.zip" "$file"
+              continue
+            fi
+            tar -C dist -czf "release/${versioned}.tar.gz" "$base"
+          done
+          (
+            cd release
+            sha256sum * > checksums.txt
+          )
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
