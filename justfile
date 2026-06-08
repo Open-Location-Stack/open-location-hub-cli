@@ -25,6 +25,28 @@ test: generate
 clean:
   rm -rf {{dist}}
 
+package-release: build-all
+  rm -rf release
+  mkdir -p release
+  for file in {{dist}}/*; do \
+    base="$(basename "$file")"; \
+    stem="${base%.exe}"; \
+    versioned="${stem}-{{version}}"; \
+    if [[ "$base" == *.exe ]]; then \
+      zip -j "release/${versioned}.zip" "$file"; \
+      continue; \
+    fi; \
+    tar -C {{dist}} -czf "release/${versioned}.tar.gz" "$base"; \
+  done
+  ( \
+    cd release; \
+    if command -v sha256sum >/dev/null 2>&1; then \
+      sha256sum * > checksums.txt; \
+    else \
+      shasum -a 256 * > checksums.txt; \
+    fi \
+  )
+
 build-all: generate
   mkdir -p {{dist}}
   GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X {{module}}/internal/build.Version={{version}} -X {{module}}/internal/build.Commit={{commit}} -X {{module}}/internal/build.Date={{date}}" -o {{dist}}/{{binary}}-darwin-amd64 ./cmd/olh

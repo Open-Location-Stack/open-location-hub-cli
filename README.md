@@ -21,6 +21,26 @@ just build-all
 
 Artifacts are written to `dist/`.
 
+## Release
+
+Build and package a release locally:
+
+```bash
+just clean
+VERSION=0.1.0 just package-release
+```
+
+Packaged archives and `checksums.txt` are written to `release/`.
+
+Publish the GitHub release by pushing a matching tag:
+
+```bash
+git tag 0.1.0
+git push origin 0.1.0
+```
+
+The release workflow uploads the packaged files and uses GitHub-generated release notes.
+
 ## Auth
 
 The CLI resolves auth configuration in this order:
