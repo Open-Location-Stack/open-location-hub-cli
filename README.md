@@ -4,13 +4,27 @@
 
 Current scope:
 - CRUD for `zones`, `trackables`, `providers`, and `fences`
+- collection `summary` and `delete-all` operations for core resources
 - location and proximity ingest
+- transient-state inspection for locations, motions, sensors, fences, and providers
+- zone transform and derived-fence helpers
 - JSON-RPC discovery and invocation
 - WebSocket subscribe and publish
 - `login` flow that validates hub and OAuth settings and saves them
 - human-readable output by default
 - machine-readable JSON with `--json`
 - automatic OAuth token fetch from `~/.openlocationhub.env` or `OLH_*` environment variables
+
+## Install
+
+Install `olh` via Homebrew:
+
+```bash
+brew tap jillesvangurp/tap
+brew install jillesvangurp/tap/open-location-hub-cli
+```
+
+Bash and Zsh completions are installed automatically.
 
 ## Build
 
@@ -95,9 +109,19 @@ olh auth token
 
 ```bash
 olh zones list
+olh zones summary
+olh zones transform 0190c9d2-6f54-7ccf-8f55-f34eb0bf01f1 -f point.json
+olh zones create-fence 0190c9d2-6f54-7ccf-8f55-f34eb0bf01f1
 olh zones get 0190c9d2-6f54-7ccf-8f55-f34eb0bf01f1
 olh trackables create -f trackable.json
+olh trackables motions
+olh trackables location 0190c9d2-6f54-7ccf-8f55-f34eb0bf01f1
+olh providers sensors uwb-sim-demo
+olh providers update-location uwb-sim-demo -f location.json
+olh locations list
+olh locations replace -f locations.json
 olh locations post -f locations.json
+olh proximities replace -f proximities.json
 olh locations stream > location_updates.ndjson
 olh trackables stream > trackable_motions.ndjson
 olh fences stream > fence_events.ndjson

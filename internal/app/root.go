@@ -118,17 +118,306 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(loginCommand(cfg, printer))
 	cmd.AddCommand(versionCommand(printer))
 	cmd.AddCommand(authCommand(cfg, printer))
-	cmd.AddCommand(newResourceCommand(cfg, printer, zonesSpec()))
-	cmd.AddCommand(newResourceCommand(cfg, printer, trackablesSpec()))
-	cmd.AddCommand(newResourceCommand(cfg, printer, providersSpec()))
-	cmd.AddCommand(newResourceCommand(cfg, printer, fencesSpec()))
-	cmd.AddCommand(locationsCommand(cfg, printer))
+	zonesCmd := newResourceCommand(cfg, printer, zonesSpec())
+	addZonesSubcommands(zonesCmd, cfg, printer)
+	cmd.AddCommand(zonesCmd)
+	trackablesCmd := newResourceCommand(cfg, printer, trackablesSpec())
+	trackablesCmd.AddCommand(wsNDJSONStreamCommand(cfg, printer, "stream", "Stream trackable motion updates as NDJSON", "trackable_motions"))
+	addTrackablesSubcommands(trackablesCmd, cfg, printer)
+	cmd.AddCommand(trackablesCmd)
+	providersCmd := newResourceCommand(cfg, printer, providersSpec())
+	addProvidersSubcommands(providersCmd, cfg, printer)
+	cmd.AddCommand(providersCmd)
+	fencesCmd := newResourceCommand(cfg, printer, fencesSpec())
+	fencesCmd.AddCommand(wsNDJSONStreamCommand(cfg, printer, "stream", "Stream fence events as NDJSON", "fence_events"))
+	addFencesSubcommands(fencesCmd, cfg, printer)
+	cmd.AddCommand(fencesCmd)
+	locationsCmd := locationsCommand(cfg, printer)
+	locationsCmd.AddCommand(wsNDJSONStreamCommand(cfg, printer, "stream", "Stream location updates as NDJSON", "location_updates"))
+	cmd.AddCommand(locationsCmd)
+	cmd.AddCommand(collisionsCommand(cfg, printer))
 	cmd.AddCommand(proximitiesCommand(cfg, printer))
 	cmd.AddCommand(rpcCommand(cfg, printer))
 	cmd.AddCommand(websocketCommand(cfg, printer))
 	cmd.AddCommand(openapiCommand(printer))
 	cmd.AddCommand(completionCommand(cmd))
 	return cmd
+}
+
+func addZonesSubcommands(cmd *cobra.Command, cfg *cli.Config, printer *output.Printer) {
+	transform := &cobra.Command{
+		Use:   "transform zone-id --file payload.json",
+		Short: "PUT /v2/zones/{zoneId}/transform",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			body, err := decodePayload[openapi.PutZoneTransformJSONRequestBody](file)
+			if err != nil {
+				return err
+			}
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			zoneID, err := parseUUID(args[0])
+			if err != nil {
+				return err
+			}
+			resp, err := client.PutZoneTransformWithResponse(cmd.Context(), zoneID, body)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return err
+			}
+			return printer.Print(resp.JSON200)
+		},
+	}
+	transform.Flags().StringP("file", "f", "", "Read request body from file or - for stdin")
+	must(transform.MarkFlagRequired("file"))
+	cmd.AddCommand(transform)
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "create-fence zone-id",
+		Short: "GET /v2/zones/{zoneId}/createfence",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			zoneID, err := parseUUID(args[0])
+			if err != nil {
+				return err
+			}
+			resp, err := client.GetZoneCreateFenceWithResponse(cmd.Context(), zoneID)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return err
+			}
+			return printer.Print(resp.JSON200)
+		},
+	})
+}
+
+func addTrackablesSubcommands(cmd *cobra.Command, cfg *cli.Config, printer *output.Printer) {
+	cmd.AddCommand(&cobra.Command{
+		Use:   "motions",
+		Short: "GET /v2/trackables/motions",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.GetTrackableMotionsWithResponse(cmd.Context())
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return err
+			}
+			return printer.Print(resp.JSON200)
+		},
+	})
+
+	cmd.AddCommand(trackableReadSubcommand("location", "GET /v2/trackables/{trackableId}/location", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi_types.UUID) (any, *http.Response, []byte, error) {
+		resp, err := client.GetTrackableLocationWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+	cmd.AddCommand(trackableReadSubcommand("locations", "GET /v2/trackables/{trackableId}/locations", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi_types.UUID) (any, *http.Response, []byte, error) {
+		resp, err := client.GetTrackableLocationsWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+	cmd.AddCommand(trackableReadSubcommand("motion", "GET /v2/trackables/{trackableId}/motion", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi_types.UUID) (any, *http.Response, []byte, error) {
+		resp, err := client.GetTrackableMotionWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+	cmd.AddCommand(trackableReadSubcommand("providers", "GET /v2/trackables/{trackableId}/providers", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi_types.UUID) (any, *http.Response, []byte, error) {
+		resp, err := client.GetTrackableProvidersWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+	cmd.AddCommand(trackableReadSubcommand("sensors", "GET /v2/trackables/{trackableId}/sensors", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi_types.UUID) (any, *http.Response, []byte, error) {
+		resp, err := client.GetTrackableSensorsWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+	cmd.AddCommand(trackableReadSubcommand("fences", "GET /v2/trackables/{trackableId}/fences", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi_types.UUID) (any, *http.Response, []byte, error) {
+		resp, err := client.GetTrackableFencesWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+}
+
+func addProvidersSubcommands(cmd *cobra.Command, cfg *cli.Config, printer *output.Printer) {
+	cmd.AddCommand(providerReadSubcommand("location", "GET /v2/providers/{providerId}/location", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi.ProviderId) (any, *http.Response, []byte, error) {
+		resp, err := client.GetProviderLocationWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+	cmd.AddCommand(providerReadSubcommand("fences", "GET /v2/providers/{providerId}/fences", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi.ProviderId) (any, *http.Response, []byte, error) {
+		resp, err := client.GetProviderFencesWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+	cmd.AddCommand(providerReadSubcommand("sensors", "GET /v2/providers/{providerId}/sensors", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi.ProviderId) (any, *http.Response, []byte, error) {
+		resp, err := client.GetProviderSensorsWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+
+	updateLocation := &cobra.Command{
+		Use:   "update-location provider-id --file payload.json",
+		Short: "PUT /v2/providers/{providerId}/location",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			body, err := decodePayload[openapi.PutProviderLocationJSONRequestBody](file)
+			if err != nil {
+				return err
+			}
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.PutProviderLocationWithResponse(cmd.Context(), openapi.ProviderId(args[0]), body)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusAccepted, resp.Body); err != nil {
+				return err
+			}
+			if printer.JSON {
+				return printer.Print(map[string]any{"accepted": true, "status": resp.StatusCode()})
+			}
+			printer.Success("provider location accepted: %s", args[0])
+			return nil
+		},
+	}
+	updateLocation.Flags().StringP("file", "f", "", "Read request body from file or - for stdin")
+	must(updateLocation.MarkFlagRequired("file"))
+	cmd.AddCommand(updateLocation)
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "delete-location provider-id",
+		Short: "DELETE /v2/providers/{providerId}/location",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.DeleteProviderLocationWithResponse(cmd.Context(), openapi.ProviderId(args[0]))
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusNoContent, resp.Body); err != nil {
+				return err
+			}
+			printer.Success("provider location deleted: %s", args[0])
+			return nil
+		},
+	})
+
+	updateSensors := &cobra.Command{
+		Use:   "update-sensors provider-id --file payload.json",
+		Short: "PUT /v2/providers/{providerId}/sensors",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			body, err := decodePayload[openapi.PutProviderSensorsJSONRequestBody](file)
+			if err != nil {
+				return err
+			}
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.PutProviderSensorsWithResponse(cmd.Context(), openapi.ProviderId(args[0]), body)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return err
+			}
+			return printer.Print(resp.JSON200)
+		},
+	}
+	updateSensors.Flags().StringP("file", "f", "", "Read request body from file or - for stdin")
+	must(updateSensors.MarkFlagRequired("file"))
+	cmd.AddCommand(updateSensors)
+
+	updateProximity := &cobra.Command{
+		Use:   "update-proximity provider-id --file payload.json",
+		Short: "PUT /v2/providers/{providerId}/proximity",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			body, err := decodePayload[openapi.PutProviderProximityJSONRequestBody](file)
+			if err != nil {
+				return err
+			}
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.PutProviderProximityWithResponse(cmd.Context(), openapi.ProviderId(args[0]), body)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusAccepted, resp.Body); err != nil {
+				return err
+			}
+			if printer.JSON {
+				return printer.Print(map[string]any{"accepted": true, "status": resp.StatusCode()})
+			}
+			printer.Success("provider proximity accepted: %s", args[0])
+			return nil
+		},
+	}
+	updateProximity.Flags().StringP("file", "f", "", "Read request body from file or - for stdin")
+	must(updateProximity.MarkFlagRequired("file"))
+	cmd.AddCommand(updateProximity)
+}
+
+func addFencesSubcommands(cmd *cobra.Command, cfg *cli.Config, printer *output.Printer) {
+	cmd.AddCommand(fenceReadSubcommand("locations", "GET /v2/fences/{fenceId}/locations", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi_types.UUID) (any, *http.Response, []byte, error) {
+		resp, err := client.GetFenceLocationsWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
+	cmd.AddCommand(fenceReadSubcommand("providers", "GET /v2/fences/{fenceId}/providers", cfg, printer, func(ctx context.Context, client *openapi.ClientWithResponses, id openapi_types.UUID) (any, *http.Response, []byte, error) {
+		resp, err := client.GetFenceProvidersWithResponse(ctx, id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return resp.JSON200, resp.HTTPResponse, resp.Body, nil
+	}))
 }
 
 func versionCommand(printer *output.Printer) *cobra.Command {
@@ -294,6 +583,31 @@ func zonesSpec() resourceSpec {
 		ReadArg:  "zone-id",
 		WriteArg: "zone-id",
 		Example:  "Example: olh zones create -f zone.json",
+		Summary: func(ctx context.Context, cfg *cli.Config) (any, error) {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return nil, err
+			}
+			resp, err := client.GetZonesSummaryWithResponse(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return nil, err
+			}
+			return resp.JSON200, nil
+		},
+		DeleteAll: func(ctx context.Context, cfg *cli.Config) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.DeleteZonesWithResponse(ctx)
+			if err != nil {
+				return err
+			}
+			return expectStatus(resp.HTTPResponse, http.StatusNoContent, resp.Body)
+		},
 		List: func(ctx context.Context, cfg *cli.Config) (any, error) {
 			client, err := apiClient(cfg)
 			if err != nil {
@@ -391,6 +705,31 @@ func trackablesSpec() resourceSpec {
 		ReadArg:  "trackable-id",
 		WriteArg: "trackable-id",
 		Example:  "Example: olh trackables create -f trackable.json",
+		Summary: func(ctx context.Context, cfg *cli.Config) (any, error) {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return nil, err
+			}
+			resp, err := client.GetTrackablesSummaryWithResponse(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return nil, err
+			}
+			return resp.JSON200, nil
+		},
+		DeleteAll: func(ctx context.Context, cfg *cli.Config) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.DeleteTrackablesWithResponse(ctx)
+			if err != nil {
+				return err
+			}
+			return expectStatus(resp.HTTPResponse, http.StatusNoContent, resp.Body)
+		},
 		List: func(ctx context.Context, cfg *cli.Config) (any, error) {
 			client, err := apiClient(cfg)
 			if err != nil {
@@ -488,6 +827,31 @@ func providersSpec() resourceSpec {
 		ReadArg:  "provider-id",
 		WriteArg: "provider-id",
 		Example:  "Example: olh providers create -f provider.json",
+		Summary: func(ctx context.Context, cfg *cli.Config) (any, error) {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return nil, err
+			}
+			resp, err := client.GetProvidersSummaryWithResponse(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return nil, err
+			}
+			return resp.JSON200, nil
+		},
+		DeleteAll: func(ctx context.Context, cfg *cli.Config) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.DeleteProvidersWithResponse(ctx)
+			if err != nil {
+				return err
+			}
+			return expectStatus(resp.HTTPResponse, http.StatusNoContent, resp.Body)
+		},
 		List: func(ctx context.Context, cfg *cli.Config) (any, error) {
 			client, err := apiClient(cfg)
 			if err != nil {
@@ -573,6 +937,31 @@ func fencesSpec() resourceSpec {
 		ReadArg:  "fence-id",
 		WriteArg: "fence-id",
 		Example:  "Example: olh fences create -f fence.json",
+		Summary: func(ctx context.Context, cfg *cli.Config) (any, error) {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return nil, err
+			}
+			resp, err := client.GetFencesSummaryWithResponse(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return nil, err
+			}
+			return resp.JSON200, nil
+		},
+		DeleteAll: func(ctx context.Context, cfg *cli.Config) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.DeleteFencesWithResponse(ctx)
+			if err != nil {
+				return err
+			}
+			return expectStatus(resp.HTTPResponse, http.StatusNoContent, resp.Body)
+		},
 		List: func(ctx context.Context, cfg *cli.Config) (any, error) {
 			client, err := apiClient(cfg)
 			if err != nil {
@@ -666,8 +1055,26 @@ func fencesSpec() resourceSpec {
 func locationsCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "locations",
-		Short: "Post provider location updates",
+		Short: "Manage provider location updates",
 	}
+	cmd.AddCommand(&cobra.Command{
+		Use:   "list",
+		Short: "GET /v2/providers/locations",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.GetProviderLocationsWithResponse(cmd.Context())
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+				return err
+			}
+			return printer.Print(resp.JSON200)
+		},
+	})
 	post := &cobra.Command{
 		Use:   "post --file locations.json",
 		Short: "POST /v2/providers/locations",
@@ -699,13 +1106,65 @@ func locationsCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
 	post.Flags().StringP("file", "f", "", "Read request body from file or - for stdin")
 	must(post.MarkFlagRequired("file"))
 	cmd.AddCommand(post)
+
+	replace := &cobra.Command{
+		Use:   "replace --file locations.json",
+		Short: "PUT /v2/providers/locations",
+		Long:  "Replace active provider locations with the supplied batch. JSON or YAML is accepted.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			body, err := decodePayload[openapi.PutProviderLocationsJSONRequestBody](file)
+			if err != nil {
+				return err
+			}
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.PutProviderLocationsWithResponse(cmd.Context(), body)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusAccepted, resp.Body); err != nil {
+				return err
+			}
+			if printer.JSON {
+				return printer.Print(map[string]any{"accepted": true, "status": resp.StatusCode()})
+			}
+			printer.Success("locations accepted")
+			return nil
+		},
+	}
+	replace.Flags().StringP("file", "f", "", "Read request body from file or - for stdin")
+	must(replace.MarkFlagRequired("file"))
+	cmd.AddCommand(replace)
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "delete-all",
+		Short: "DELETE /v2/providers/locations",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.DeleteProviderLocationsWithResponse(cmd.Context())
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusNoContent, resp.Body); err != nil {
+				return err
+			}
+			printer.Success("locations deleted")
+			return nil
+		},
+	})
 	return cmd
 }
 
 func proximitiesCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "proximities",
-		Short: "Post provider proximity updates",
+		Short: "Manage provider proximity updates",
 	}
 	post := &cobra.Command{
 		Use:   "post --file proximities.json",
@@ -737,6 +1196,47 @@ func proximitiesCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command
 	post.Flags().StringP("file", "f", "", "Read request body from file or - for stdin")
 	must(post.MarkFlagRequired("file"))
 	cmd.AddCommand(post)
+
+	replace := &cobra.Command{
+		Use:   "replace --file proximities.json",
+		Short: "PUT /v2/providers/proximities",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			body, err := decodePayload[openapi.PutProviderProximitiesJSONRequestBody](file)
+			if err != nil {
+				return err
+			}
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			resp, err := client.PutProviderProximitiesWithResponse(cmd.Context(), body)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp.HTTPResponse, http.StatusAccepted, resp.Body); err != nil {
+				return err
+			}
+			if printer.JSON {
+				return printer.Print(map[string]any{"accepted": true, "status": resp.StatusCode()})
+			}
+			printer.Success("proximities accepted")
+			return nil
+		},
+	}
+	replace.Flags().StringP("file", "f", "", "Read request body from file or - for stdin")
+	must(replace.MarkFlagRequired("file"))
+	cmd.AddCommand(replace)
+	return cmd
+}
+
+func collisionsCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "collisions",
+		Short: "Stream collision updates",
+		Long:  "Collision events are published over WebSocket when collision processing is enabled on the hub.",
+	}
+	cmd.AddCommand(wsNDJSONStreamCommand(cfg, printer, "stream", "Stream collision events as NDJSON", "collision_events"))
 	return cmd
 }
 
@@ -822,6 +1322,80 @@ func expectStatuses(resp *http.Response, body []byte, codes ...int) error {
 
 func parseUUID(id string) (openapi_types.UUID, error) {
 	return uuid.Parse(id)
+}
+
+func trackableReadSubcommand(use, short string, cfg *cli.Config, printer *output.Printer, run func(context.Context, *openapi.ClientWithResponses, openapi_types.UUID) (any, *http.Response, []byte, error)) *cobra.Command {
+	return &cobra.Command{
+		Use:   use + " trackable-id",
+		Short: short,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			trackableID, err := parseUUID(args[0])
+			if err != nil {
+				return err
+			}
+			value, resp, body, err := run(cmd.Context(), client, trackableID)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp, http.StatusOK, body); err != nil {
+				return err
+			}
+			return printer.Print(value)
+		},
+	}
+}
+
+func providerReadSubcommand(use, short string, cfg *cli.Config, printer *output.Printer, run func(context.Context, *openapi.ClientWithResponses, openapi.ProviderId) (any, *http.Response, []byte, error)) *cobra.Command {
+	return &cobra.Command{
+		Use:   use + " provider-id",
+		Short: short,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			value, resp, body, err := run(cmd.Context(), client, openapi.ProviderId(args[0]))
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp, http.StatusOK, body); err != nil {
+				return err
+			}
+			return printer.Print(value)
+		},
+	}
+}
+
+func fenceReadSubcommand(use, short string, cfg *cli.Config, printer *output.Printer, run func(context.Context, *openapi.ClientWithResponses, openapi_types.UUID) (any, *http.Response, []byte, error)) *cobra.Command {
+	return &cobra.Command{
+		Use:   use + " fence-id",
+		Short: short,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClient(cfg)
+			if err != nil {
+				return err
+			}
+			fenceID, err := parseUUID(args[0])
+			if err != nil {
+				return err
+			}
+			value, resp, body, err := run(cmd.Context(), client, fenceID)
+			if err != nil {
+				return err
+			}
+			if err := expectStatus(resp, http.StatusOK, body); err != nil {
+				return err
+			}
+			return printer.Print(value)
+		},
+	}
 }
 
 func resolveFlagOrEnv(flags interface{ Changed(string) bool }, flagName, current string, env map[string]string, envKey string) string {

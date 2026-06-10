@@ -489,6 +489,15 @@ type Proximity struct {
 	TimestampSent *time.Time `json:"timestamp_sent,omitempty"`
 }
 
+// ResourceSummary Compact collection summary.
+type ResourceSummary struct {
+	// Count Number of resources currently known to the hub.
+	Count int `json:"count"`
+
+	// Type Resource collection represented by the summary.
+	Type string `json:"type"`
+}
+
 // RpcAvailableMethods Mapping of JSON-RPC method name to currently reachable handler IDs known to the hub.
 type RpcAvailableMethods map[string]RpcAvailableMethodsEntry
 
@@ -677,8 +686,20 @@ type Unauthorized = ErrorResponse
 // PostProviderLocationsJSONBody defines parameters for PostProviderLocations.
 type PostProviderLocationsJSONBody = []Location
 
+// PutProviderLocationsJSONBody defines parameters for PutProviderLocations.
+type PutProviderLocationsJSONBody = []Location
+
 // PostProviderProximitiesJSONBody defines parameters for PostProviderProximities.
 type PostProviderProximitiesJSONBody = []Proximity
+
+// PutProviderProximitiesJSONBody defines parameters for PutProviderProximities.
+type PutProviderProximitiesJSONBody = []Proximity
+
+// PutProviderSensorsJSONBody defines parameters for PutProviderSensors.
+type PutProviderSensorsJSONBody map[string]interface{}
+
+// PutZoneTransformJSONBody defines parameters for PutZoneTransform.
+type PutZoneTransformJSONBody map[string]interface{}
 
 // CreateFenceJSONRequestBody defines body for CreateFence for application/json ContentType.
 type CreateFenceJSONRequestBody = FenceWrite
@@ -692,11 +713,26 @@ type CreateProviderJSONRequestBody = LocationProviderWrite
 // PostProviderLocationsJSONRequestBody defines body for PostProviderLocations for application/json ContentType.
 type PostProviderLocationsJSONRequestBody = PostProviderLocationsJSONBody
 
+// PutProviderLocationsJSONRequestBody defines body for PutProviderLocations for application/json ContentType.
+type PutProviderLocationsJSONRequestBody = PutProviderLocationsJSONBody
+
 // PostProviderProximitiesJSONRequestBody defines body for PostProviderProximities for application/json ContentType.
 type PostProviderProximitiesJSONRequestBody = PostProviderProximitiesJSONBody
 
+// PutProviderProximitiesJSONRequestBody defines body for PutProviderProximities for application/json ContentType.
+type PutProviderProximitiesJSONRequestBody = PutProviderProximitiesJSONBody
+
 // UpdateProviderJSONRequestBody defines body for UpdateProvider for application/json ContentType.
 type UpdateProviderJSONRequestBody = LocationProviderWrite
+
+// PutProviderLocationJSONRequestBody defines body for PutProviderLocation for application/json ContentType.
+type PutProviderLocationJSONRequestBody = Location
+
+// PutProviderProximityJSONRequestBody defines body for PutProviderProximity for application/json ContentType.
+type PutProviderProximityJSONRequestBody = Proximity
+
+// PutProviderSensorsJSONRequestBody defines body for PutProviderSensors for application/json ContentType.
+type PutProviderSensorsJSONRequestBody PutProviderSensorsJSONBody
 
 // PutRPCJSONRequestBody defines body for PutRPC for application/json ContentType.
 type PutRPCJSONRequestBody = JsonRpcRequest
@@ -712,6 +748,9 @@ type CreateZoneJSONRequestBody = ZoneWrite
 
 // UpdateZoneJSONRequestBody defines body for UpdateZone for application/json ContentType.
 type UpdateZoneJSONRequestBody = ZoneWrite
+
+// PutZoneTransformJSONRequestBody defines body for PutZoneTransform for application/json ContentType.
+type PutZoneTransformJSONRequestBody PutZoneTransformJSONBody
 
 // Getter for additional properties for JsonRpcRequest_Params. Returns the specified
 // element and whether it was found
@@ -1411,6 +1450,9 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// DeleteFences request
+	DeleteFences(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListFences request
 	ListFences(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1418,6 +1460,9 @@ type ClientInterface interface {
 	CreateFenceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateFence(ctx context.Context, body CreateFenceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetFencesSummary request
+	GetFencesSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteFence request
 	DeleteFence(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1430,6 +1475,15 @@ type ClientInterface interface {
 
 	UpdateFence(ctx context.Context, fenceId FenceId, body UpdateFenceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetFenceLocations request
+	GetFenceLocations(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetFenceProviders request
+	GetFenceProviders(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteProviders request
+	DeleteProviders(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListProviders request
 	ListProviders(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1438,15 +1492,34 @@ type ClientInterface interface {
 
 	CreateProvider(ctx context.Context, body CreateProviderJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// DeleteProviderLocations request
+	DeleteProviderLocations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetProviderLocations request
+	GetProviderLocations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PostProviderLocationsWithBody request with any body
 	PostProviderLocationsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PostProviderLocations(ctx context.Context, body PostProviderLocationsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PutProviderLocationsWithBody request with any body
+	PutProviderLocationsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutProviderLocations(ctx context.Context, body PutProviderLocationsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PostProviderProximitiesWithBody request with any body
 	PostProviderProximitiesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PostProviderProximities(ctx context.Context, body PostProviderProximitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutProviderProximitiesWithBody request with any body
+	PutProviderProximitiesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutProviderProximities(ctx context.Context, body PutProviderProximitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetProvidersSummary request
+	GetProvidersSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteProvider request
 	DeleteProvider(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1459,6 +1532,33 @@ type ClientInterface interface {
 
 	UpdateProvider(ctx context.Context, providerId ProviderId, body UpdateProviderJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetProviderFences request
+	GetProviderFences(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteProviderLocation request
+	DeleteProviderLocation(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetProviderLocation request
+	GetProviderLocation(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutProviderLocationWithBody request with any body
+	PutProviderLocationWithBody(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutProviderLocation(ctx context.Context, providerId ProviderId, body PutProviderLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutProviderProximityWithBody request with any body
+	PutProviderProximityWithBody(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutProviderProximity(ctx context.Context, providerId ProviderId, body PutProviderProximityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetProviderSensors request
+	GetProviderSensors(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutProviderSensorsWithBody request with any body
+	PutProviderSensorsWithBody(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutProviderSensors(ctx context.Context, providerId ProviderId, body PutProviderSensorsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PutRPCWithBody request with any body
 	PutRPCWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1467,6 +1567,9 @@ type ClientInterface interface {
 	// GetRPCAvailable request
 	GetRPCAvailable(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// DeleteTrackables request
+	DeleteTrackables(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListTrackables request
 	ListTrackables(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1474,6 +1577,12 @@ type ClientInterface interface {
 	CreateTrackableWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateTrackable(ctx context.Context, body CreateTrackableJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTrackableMotions request
+	GetTrackableMotions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTrackablesSummary request
+	GetTrackablesSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteTrackable request
 	DeleteTrackable(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1486,6 +1595,27 @@ type ClientInterface interface {
 
 	UpdateTrackable(ctx context.Context, trackableId TrackableId, body UpdateTrackableJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetTrackableFences request
+	GetTrackableFences(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTrackableLocation request
+	GetTrackableLocation(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTrackableLocations request
+	GetTrackableLocations(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTrackableMotion request
+	GetTrackableMotion(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTrackableProviders request
+	GetTrackableProviders(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTrackableSensors request
+	GetTrackableSensors(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteZones request
+	DeleteZones(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListZones request
 	ListZones(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1493,6 +1623,9 @@ type ClientInterface interface {
 	CreateZoneWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateZone(ctx context.Context, body CreateZoneJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetZonesSummary request
+	GetZonesSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteZone request
 	DeleteZone(ctx context.Context, zoneId ZoneId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1504,6 +1637,26 @@ type ClientInterface interface {
 	UpdateZoneWithBody(ctx context.Context, zoneId ZoneId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateZone(ctx context.Context, zoneId ZoneId, body UpdateZoneJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetZoneCreateFence request
+	GetZoneCreateFence(ctx context.Context, zoneId ZoneId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutZoneTransformWithBody request with any body
+	PutZoneTransformWithBody(ctx context.Context, zoneId ZoneId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutZoneTransform(ctx context.Context, zoneId ZoneId, body PutZoneTransformJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) DeleteFences(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteFencesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) ListFences(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1532,6 +1685,18 @@ func (c *Client) CreateFenceWithBody(ctx context.Context, contentType string, bo
 
 func (c *Client) CreateFence(ctx context.Context, body CreateFenceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateFenceRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetFencesSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFencesSummaryRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1590,6 +1755,42 @@ func (c *Client) UpdateFence(ctx context.Context, fenceId FenceId, body UpdateFe
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetFenceLocations(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFenceLocationsRequest(c.Server, fenceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetFenceProviders(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFenceProvidersRequest(c.Server, fenceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteProviders(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteProvidersRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListProviders(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListProvidersRequest(c.Server)
 	if err != nil {
@@ -1626,6 +1827,30 @@ func (c *Client) CreateProvider(ctx context.Context, body CreateProviderJSONRequ
 	return c.Client.Do(req)
 }
 
+func (c *Client) DeleteProviderLocations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteProviderLocationsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetProviderLocations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetProviderLocationsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) PostProviderLocationsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostProviderLocationsRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -1650,6 +1875,30 @@ func (c *Client) PostProviderLocations(ctx context.Context, body PostProviderLoc
 	return c.Client.Do(req)
 }
 
+func (c *Client) PutProviderLocationsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderLocationsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderLocations(ctx context.Context, body PutProviderLocationsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderLocationsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) PostProviderProximitiesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostProviderProximitiesRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -1664,6 +1913,42 @@ func (c *Client) PostProviderProximitiesWithBody(ctx context.Context, contentTyp
 
 func (c *Client) PostProviderProximities(ctx context.Context, body PostProviderProximitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostProviderProximitiesRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderProximitiesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderProximitiesRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderProximities(ctx context.Context, body PutProviderProximitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderProximitiesRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetProvidersSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetProvidersSummaryRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1722,6 +2007,126 @@ func (c *Client) UpdateProvider(ctx context.Context, providerId ProviderId, body
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetProviderFences(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetProviderFencesRequest(c.Server, providerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteProviderLocation(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteProviderLocationRequest(c.Server, providerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetProviderLocation(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetProviderLocationRequest(c.Server, providerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderLocationWithBody(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderLocationRequestWithBody(c.Server, providerId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderLocation(ctx context.Context, providerId ProviderId, body PutProviderLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderLocationRequest(c.Server, providerId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderProximityWithBody(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderProximityRequestWithBody(c.Server, providerId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderProximity(ctx context.Context, providerId ProviderId, body PutProviderProximityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderProximityRequest(c.Server, providerId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetProviderSensors(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetProviderSensorsRequest(c.Server, providerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderSensorsWithBody(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderSensorsRequestWithBody(c.Server, providerId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutProviderSensors(ctx context.Context, providerId ProviderId, body PutProviderSensorsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutProviderSensorsRequest(c.Server, providerId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) PutRPCWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPutRPCRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -1758,6 +2163,18 @@ func (c *Client) GetRPCAvailable(ctx context.Context, reqEditors ...RequestEdito
 	return c.Client.Do(req)
 }
 
+func (c *Client) DeleteTrackables(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteTrackablesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListTrackables(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListTrackablesRequest(c.Server)
 	if err != nil {
@@ -1784,6 +2201,30 @@ func (c *Client) CreateTrackableWithBody(ctx context.Context, contentType string
 
 func (c *Client) CreateTrackable(ctx context.Context, body CreateTrackableJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateTrackableRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTrackableMotions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTrackableMotionsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTrackablesSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTrackablesSummaryRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1842,6 +2283,90 @@ func (c *Client) UpdateTrackable(ctx context.Context, trackableId TrackableId, b
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetTrackableFences(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTrackableFencesRequest(c.Server, trackableId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTrackableLocation(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTrackableLocationRequest(c.Server, trackableId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTrackableLocations(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTrackableLocationsRequest(c.Server, trackableId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTrackableMotion(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTrackableMotionRequest(c.Server, trackableId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTrackableProviders(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTrackableProvidersRequest(c.Server, trackableId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTrackableSensors(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTrackableSensorsRequest(c.Server, trackableId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteZones(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteZonesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListZones(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListZonesRequest(c.Server)
 	if err != nil {
@@ -1868,6 +2393,18 @@ func (c *Client) CreateZoneWithBody(ctx context.Context, contentType string, bod
 
 func (c *Client) CreateZone(ctx context.Context, body CreateZoneJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateZoneRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetZonesSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetZonesSummaryRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1924,6 +2461,69 @@ func (c *Client) UpdateZone(ctx context.Context, zoneId ZoneId, body UpdateZoneJ
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+func (c *Client) GetZoneCreateFence(ctx context.Context, zoneId ZoneId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetZoneCreateFenceRequest(c.Server, zoneId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutZoneTransformWithBody(ctx context.Context, zoneId ZoneId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutZoneTransformRequestWithBody(c.Server, zoneId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutZoneTransform(ctx context.Context, zoneId ZoneId, body PutZoneTransformJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutZoneTransformRequest(c.Server, zoneId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewDeleteFencesRequest generates requests for DeleteFences
+func NewDeleteFencesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/fences")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewListFencesRequest generates requests for ListFences
@@ -1989,6 +2589,33 @@ func NewCreateFenceRequestWithBody(server string, contentType string, body io.Re
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetFencesSummaryRequest generates requests for GetFencesSummary
+func NewGetFencesSummaryRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/fences/summary")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -2108,6 +2735,101 @@ func NewUpdateFenceRequestWithBody(server string, fenceId FenceId, contentType s
 	return req, nil
 }
 
+// NewGetFenceLocationsRequest generates requests for GetFenceLocations
+func NewGetFenceLocationsRequest(server string, fenceId FenceId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "fenceId", runtime.ParamLocationPath, fenceId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/fences/%s/locations", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetFenceProvidersRequest generates requests for GetFenceProviders
+func NewGetFenceProvidersRequest(server string, fenceId FenceId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "fenceId", runtime.ParamLocationPath, fenceId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/fences/%s/providers", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteProvidersRequest generates requests for DeleteProviders
+func NewDeleteProvidersRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListProvidersRequest generates requests for ListProviders
 func NewListProvidersRequest(server string) (*http.Request, error) {
 	var err error
@@ -2175,6 +2897,60 @@ func NewCreateProviderRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
+// NewDeleteProviderLocationsRequest generates requests for DeleteProviderLocations
+func NewDeleteProviderLocationsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/locations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetProviderLocationsRequest generates requests for GetProviderLocations
+func NewGetProviderLocationsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/locations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewPostProviderLocationsRequest calls the generic PostProviderLocations builder with application/json body
 func NewPostProviderLocationsRequest(server string, body PostProviderLocationsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -2206,6 +2982,46 @@ func NewPostProviderLocationsRequestWithBody(server string, contentType string, 
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPutProviderLocationsRequest calls the generic PutProviderLocations builder with application/json body
+func NewPutProviderLocationsRequest(server string, body PutProviderLocationsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutProviderLocationsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutProviderLocationsRequestWithBody generates requests for PutProviderLocations with any type of body
+func NewPutProviderLocationsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/locations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -2251,6 +3067,73 @@ func NewPostProviderProximitiesRequestWithBody(server string, contentType string
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPutProviderProximitiesRequest calls the generic PutProviderProximities builder with application/json body
+func NewPutProviderProximitiesRequest(server string, body PutProviderProximitiesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutProviderProximitiesRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutProviderProximitiesRequestWithBody generates requests for PutProviderProximities with any type of body
+func NewPutProviderProximitiesRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/proximities")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetProvidersSummaryRequest generates requests for GetProvidersSummary
+func NewGetProvidersSummaryRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/summary")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -2370,6 +3253,283 @@ func NewUpdateProviderRequestWithBody(server string, providerId ProviderId, cont
 	return req, nil
 }
 
+// NewGetProviderFencesRequest generates requests for GetProviderFences
+func NewGetProviderFencesRequest(server string, providerId ProviderId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "providerId", runtime.ParamLocationPath, providerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/%s/fences", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteProviderLocationRequest generates requests for DeleteProviderLocation
+func NewDeleteProviderLocationRequest(server string, providerId ProviderId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "providerId", runtime.ParamLocationPath, providerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/%s/location", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetProviderLocationRequest generates requests for GetProviderLocation
+func NewGetProviderLocationRequest(server string, providerId ProviderId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "providerId", runtime.ParamLocationPath, providerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/%s/location", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutProviderLocationRequest calls the generic PutProviderLocation builder with application/json body
+func NewPutProviderLocationRequest(server string, providerId ProviderId, body PutProviderLocationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutProviderLocationRequestWithBody(server, providerId, "application/json", bodyReader)
+}
+
+// NewPutProviderLocationRequestWithBody generates requests for PutProviderLocation with any type of body
+func NewPutProviderLocationRequestWithBody(server string, providerId ProviderId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "providerId", runtime.ParamLocationPath, providerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/%s/location", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPutProviderProximityRequest calls the generic PutProviderProximity builder with application/json body
+func NewPutProviderProximityRequest(server string, providerId ProviderId, body PutProviderProximityJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutProviderProximityRequestWithBody(server, providerId, "application/json", bodyReader)
+}
+
+// NewPutProviderProximityRequestWithBody generates requests for PutProviderProximity with any type of body
+func NewPutProviderProximityRequestWithBody(server string, providerId ProviderId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "providerId", runtime.ParamLocationPath, providerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/%s/proximity", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetProviderSensorsRequest generates requests for GetProviderSensors
+func NewGetProviderSensorsRequest(server string, providerId ProviderId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "providerId", runtime.ParamLocationPath, providerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/%s/sensors", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutProviderSensorsRequest calls the generic PutProviderSensors builder with application/json body
+func NewPutProviderSensorsRequest(server string, providerId ProviderId, body PutProviderSensorsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutProviderSensorsRequestWithBody(server, providerId, "application/json", bodyReader)
+}
+
+// NewPutProviderSensorsRequestWithBody generates requests for PutProviderSensors with any type of body
+func NewPutProviderSensorsRequestWithBody(server string, providerId ProviderId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "providerId", runtime.ParamLocationPath, providerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/providers/%s/sensors", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewPutRPCRequest calls the generic PutRPC builder with application/json body
 func NewPutRPCRequest(server string, body PutRPCJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -2430,6 +3590,33 @@ func NewGetRPCAvailableRequest(server string) (*http.Request, error) {
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteTrackablesRequest generates requests for DeleteTrackables
+func NewDeleteTrackablesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2500,6 +3687,60 @@ func NewCreateTrackableRequestWithBody(server string, contentType string, body i
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetTrackableMotionsRequest generates requests for GetTrackableMotions
+func NewGetTrackableMotionsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables/motions")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTrackablesSummaryRequest generates requests for GetTrackablesSummary
+func NewGetTrackablesSummaryRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables/summary")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -2619,6 +3860,237 @@ func NewUpdateTrackableRequestWithBody(server string, trackableId TrackableId, c
 	return req, nil
 }
 
+// NewGetTrackableFencesRequest generates requests for GetTrackableFences
+func NewGetTrackableFencesRequest(server string, trackableId TrackableId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "trackableId", runtime.ParamLocationPath, trackableId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables/%s/fences", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTrackableLocationRequest generates requests for GetTrackableLocation
+func NewGetTrackableLocationRequest(server string, trackableId TrackableId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "trackableId", runtime.ParamLocationPath, trackableId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables/%s/location", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTrackableLocationsRequest generates requests for GetTrackableLocations
+func NewGetTrackableLocationsRequest(server string, trackableId TrackableId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "trackableId", runtime.ParamLocationPath, trackableId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables/%s/locations", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTrackableMotionRequest generates requests for GetTrackableMotion
+func NewGetTrackableMotionRequest(server string, trackableId TrackableId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "trackableId", runtime.ParamLocationPath, trackableId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables/%s/motion", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTrackableProvidersRequest generates requests for GetTrackableProviders
+func NewGetTrackableProvidersRequest(server string, trackableId TrackableId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "trackableId", runtime.ParamLocationPath, trackableId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables/%s/providers", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTrackableSensorsRequest generates requests for GetTrackableSensors
+func NewGetTrackableSensorsRequest(server string, trackableId TrackableId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "trackableId", runtime.ParamLocationPath, trackableId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/trackables/%s/sensors", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteZonesRequest generates requests for DeleteZones
+func NewDeleteZonesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/zones")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListZonesRequest generates requests for ListZones
 func NewListZonesRequest(server string) (*http.Request, error) {
 	var err error
@@ -2682,6 +4154,33 @@ func NewCreateZoneRequestWithBody(server string, contentType string, body io.Rea
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetZonesSummaryRequest generates requests for GetZonesSummary
+func NewGetZonesSummaryRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/zones/summary")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -2801,6 +4300,87 @@ func NewUpdateZoneRequestWithBody(server string, zoneId ZoneId, contentType stri
 	return req, nil
 }
 
+// NewGetZoneCreateFenceRequest generates requests for GetZoneCreateFence
+func NewGetZoneCreateFenceRequest(server string, zoneId ZoneId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "zoneId", runtime.ParamLocationPath, zoneId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/zones/%s/createfence", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutZoneTransformRequest calls the generic PutZoneTransform builder with application/json body
+func NewPutZoneTransformRequest(server string, zoneId ZoneId, body PutZoneTransformJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutZoneTransformRequestWithBody(server, zoneId, "application/json", bodyReader)
+}
+
+// NewPutZoneTransformRequestWithBody generates requests for PutZoneTransform with any type of body
+func NewPutZoneTransformRequestWithBody(server string, zoneId ZoneId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "zoneId", runtime.ParamLocationPath, zoneId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/zones/%s/transform", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -2844,6 +4424,9 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// DeleteFencesWithResponse request
+	DeleteFencesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteFencesResponse, error)
+
 	// ListFencesWithResponse request
 	ListFencesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListFencesResponse, error)
 
@@ -2851,6 +4434,9 @@ type ClientWithResponsesInterface interface {
 	CreateFenceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateFenceResponse, error)
 
 	CreateFenceWithResponse(ctx context.Context, body CreateFenceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateFenceResponse, error)
+
+	// GetFencesSummaryWithResponse request
+	GetFencesSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetFencesSummaryResponse, error)
 
 	// DeleteFenceWithResponse request
 	DeleteFenceWithResponse(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*DeleteFenceResponse, error)
@@ -2863,6 +4449,15 @@ type ClientWithResponsesInterface interface {
 
 	UpdateFenceWithResponse(ctx context.Context, fenceId FenceId, body UpdateFenceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateFenceResponse, error)
 
+	// GetFenceLocationsWithResponse request
+	GetFenceLocationsWithResponse(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*GetFenceLocationsResponse, error)
+
+	// GetFenceProvidersWithResponse request
+	GetFenceProvidersWithResponse(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*GetFenceProvidersResponse, error)
+
+	// DeleteProvidersWithResponse request
+	DeleteProvidersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteProvidersResponse, error)
+
 	// ListProvidersWithResponse request
 	ListProvidersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProvidersResponse, error)
 
@@ -2871,15 +4466,34 @@ type ClientWithResponsesInterface interface {
 
 	CreateProviderWithResponse(ctx context.Context, body CreateProviderJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateProviderResponse, error)
 
+	// DeleteProviderLocationsWithResponse request
+	DeleteProviderLocationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteProviderLocationsResponse, error)
+
+	// GetProviderLocationsWithResponse request
+	GetProviderLocationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetProviderLocationsResponse, error)
+
 	// PostProviderLocationsWithBodyWithResponse request with any body
 	PostProviderLocationsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostProviderLocationsResponse, error)
 
 	PostProviderLocationsWithResponse(ctx context.Context, body PostProviderLocationsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostProviderLocationsResponse, error)
 
+	// PutProviderLocationsWithBodyWithResponse request with any body
+	PutProviderLocationsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderLocationsResponse, error)
+
+	PutProviderLocationsWithResponse(ctx context.Context, body PutProviderLocationsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderLocationsResponse, error)
+
 	// PostProviderProximitiesWithBodyWithResponse request with any body
 	PostProviderProximitiesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostProviderProximitiesResponse, error)
 
 	PostProviderProximitiesWithResponse(ctx context.Context, body PostProviderProximitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*PostProviderProximitiesResponse, error)
+
+	// PutProviderProximitiesWithBodyWithResponse request with any body
+	PutProviderProximitiesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderProximitiesResponse, error)
+
+	PutProviderProximitiesWithResponse(ctx context.Context, body PutProviderProximitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderProximitiesResponse, error)
+
+	// GetProvidersSummaryWithResponse request
+	GetProvidersSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetProvidersSummaryResponse, error)
 
 	// DeleteProviderWithResponse request
 	DeleteProviderWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*DeleteProviderResponse, error)
@@ -2892,6 +4506,33 @@ type ClientWithResponsesInterface interface {
 
 	UpdateProviderWithResponse(ctx context.Context, providerId ProviderId, body UpdateProviderJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateProviderResponse, error)
 
+	// GetProviderFencesWithResponse request
+	GetProviderFencesWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*GetProviderFencesResponse, error)
+
+	// DeleteProviderLocationWithResponse request
+	DeleteProviderLocationWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*DeleteProviderLocationResponse, error)
+
+	// GetProviderLocationWithResponse request
+	GetProviderLocationWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*GetProviderLocationResponse, error)
+
+	// PutProviderLocationWithBodyWithResponse request with any body
+	PutProviderLocationWithBodyWithResponse(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderLocationResponse, error)
+
+	PutProviderLocationWithResponse(ctx context.Context, providerId ProviderId, body PutProviderLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderLocationResponse, error)
+
+	// PutProviderProximityWithBodyWithResponse request with any body
+	PutProviderProximityWithBodyWithResponse(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderProximityResponse, error)
+
+	PutProviderProximityWithResponse(ctx context.Context, providerId ProviderId, body PutProviderProximityJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderProximityResponse, error)
+
+	// GetProviderSensorsWithResponse request
+	GetProviderSensorsWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*GetProviderSensorsResponse, error)
+
+	// PutProviderSensorsWithBodyWithResponse request with any body
+	PutProviderSensorsWithBodyWithResponse(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderSensorsResponse, error)
+
+	PutProviderSensorsWithResponse(ctx context.Context, providerId ProviderId, body PutProviderSensorsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderSensorsResponse, error)
+
 	// PutRPCWithBodyWithResponse request with any body
 	PutRPCWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRPCResponse, error)
 
@@ -2900,6 +4541,9 @@ type ClientWithResponsesInterface interface {
 	// GetRPCAvailableWithResponse request
 	GetRPCAvailableWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRPCAvailableResponse, error)
 
+	// DeleteTrackablesWithResponse request
+	DeleteTrackablesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteTrackablesResponse, error)
+
 	// ListTrackablesWithResponse request
 	ListTrackablesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListTrackablesResponse, error)
 
@@ -2907,6 +4551,12 @@ type ClientWithResponsesInterface interface {
 	CreateTrackableWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateTrackableResponse, error)
 
 	CreateTrackableWithResponse(ctx context.Context, body CreateTrackableJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateTrackableResponse, error)
+
+	// GetTrackableMotionsWithResponse request
+	GetTrackableMotionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTrackableMotionsResponse, error)
+
+	// GetTrackablesSummaryWithResponse request
+	GetTrackablesSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTrackablesSummaryResponse, error)
 
 	// DeleteTrackableWithResponse request
 	DeleteTrackableWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*DeleteTrackableResponse, error)
@@ -2919,6 +4569,27 @@ type ClientWithResponsesInterface interface {
 
 	UpdateTrackableWithResponse(ctx context.Context, trackableId TrackableId, body UpdateTrackableJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateTrackableResponse, error)
 
+	// GetTrackableFencesWithResponse request
+	GetTrackableFencesWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableFencesResponse, error)
+
+	// GetTrackableLocationWithResponse request
+	GetTrackableLocationWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableLocationResponse, error)
+
+	// GetTrackableLocationsWithResponse request
+	GetTrackableLocationsWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableLocationsResponse, error)
+
+	// GetTrackableMotionWithResponse request
+	GetTrackableMotionWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableMotionResponse, error)
+
+	// GetTrackableProvidersWithResponse request
+	GetTrackableProvidersWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableProvidersResponse, error)
+
+	// GetTrackableSensorsWithResponse request
+	GetTrackableSensorsWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableSensorsResponse, error)
+
+	// DeleteZonesWithResponse request
+	DeleteZonesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteZonesResponse, error)
+
 	// ListZonesWithResponse request
 	ListZonesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListZonesResponse, error)
 
@@ -2926,6 +4597,9 @@ type ClientWithResponsesInterface interface {
 	CreateZoneWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateZoneResponse, error)
 
 	CreateZoneWithResponse(ctx context.Context, body CreateZoneJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateZoneResponse, error)
+
+	// GetZonesSummaryWithResponse request
+	GetZonesSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetZonesSummaryResponse, error)
 
 	// DeleteZoneWithResponse request
 	DeleteZoneWithResponse(ctx context.Context, zoneId ZoneId, reqEditors ...RequestEditorFn) (*DeleteZoneResponse, error)
@@ -2937,6 +4611,37 @@ type ClientWithResponsesInterface interface {
 	UpdateZoneWithBodyWithResponse(ctx context.Context, zoneId ZoneId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateZoneResponse, error)
 
 	UpdateZoneWithResponse(ctx context.Context, zoneId ZoneId, body UpdateZoneJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateZoneResponse, error)
+
+	// GetZoneCreateFenceWithResponse request
+	GetZoneCreateFenceWithResponse(ctx context.Context, zoneId ZoneId, reqEditors ...RequestEditorFn) (*GetZoneCreateFenceResponse, error)
+
+	// PutZoneTransformWithBodyWithResponse request with any body
+	PutZoneTransformWithBodyWithResponse(ctx context.Context, zoneId ZoneId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutZoneTransformResponse, error)
+
+	PutZoneTransformWithResponse(ctx context.Context, zoneId ZoneId, body PutZoneTransformJSONRequestBody, reqEditors ...RequestEditorFn) (*PutZoneTransformResponse, error)
+}
+
+type DeleteFencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteFencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteFencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type ListFencesResponse struct {
@@ -2982,6 +4687,30 @@ func (r CreateFenceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateFenceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetFencesSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ResourceSummary
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r GetFencesSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetFencesSummaryResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3063,6 +4792,79 @@ func (r UpdateFenceResponse) StatusCode() int {
 	return 0
 }
 
+type GetFenceLocationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Location
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetFenceLocationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetFenceLocationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetFenceProvidersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]LocationProvider
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetFenceProvidersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetFenceProvidersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteProvidersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteProvidersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteProvidersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListProvidersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3112,6 +4914,53 @@ func (r CreateProviderResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteProviderLocationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteProviderLocationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteProviderLocationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetProviderLocationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Location
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r GetProviderLocationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetProviderLocationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type PostProviderLocationsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3136,6 +4985,30 @@ func (r PostProviderLocationsResponse) StatusCode() int {
 	return 0
 }
 
+type PutProviderLocationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *BadRequest
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r PutProviderLocationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutProviderLocationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type PostProviderProximitiesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3154,6 +5027,54 @@ func (r PostProviderProximitiesResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PostProviderProximitiesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutProviderProximitiesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *BadRequest
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r PutProviderProximitiesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutProviderProximitiesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetProvidersSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ResourceSummary
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r GetProvidersSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetProvidersSummaryResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3235,6 +5156,181 @@ func (r UpdateProviderResponse) StatusCode() int {
 	return 0
 }
 
+type GetProviderFencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Fence
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetProviderFencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetProviderFencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteProviderLocationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteProviderLocationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteProviderLocationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetProviderLocationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Location
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetProviderLocationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetProviderLocationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutProviderLocationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *BadRequest
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r PutProviderLocationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutProviderLocationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutProviderProximityResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *BadRequest
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r PutProviderProximityResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutProviderProximityResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetProviderSensorsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ExtensionProperties
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetProviderSensorsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetProviderSensorsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutProviderSensorsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LocationProvider
+	JSON400      *BadRequest
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r PutProviderSensorsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutProviderSensorsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type PutRPCResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3286,6 +5382,29 @@ func (r GetRPCAvailableResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteTrackablesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteTrackablesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteTrackablesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListTrackablesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3329,6 +5448,54 @@ func (r CreateTrackableResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateTrackableResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTrackableMotionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]TrackableMotion
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTrackableMotionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTrackableMotionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTrackablesSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ResourceSummary
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTrackablesSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTrackablesSummaryResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3410,6 +5577,179 @@ func (r UpdateTrackableResponse) StatusCode() int {
 	return 0
 }
 
+type GetTrackableFencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Fence
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTrackableFencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTrackableFencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTrackableLocationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Location
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTrackableLocationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTrackableLocationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTrackableLocationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Location
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTrackableLocationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTrackableLocationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTrackableMotionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TrackableMotion
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTrackableMotionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTrackableMotionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTrackableProvidersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]LocationProvider
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTrackableProvidersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTrackableProvidersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTrackableSensorsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *map[string]ExtensionProperties
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTrackableSensorsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTrackableSensorsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteZonesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteZonesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteZonesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListZonesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3453,6 +5793,30 @@ func (r CreateZoneResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateZoneResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetZonesSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ResourceSummary
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+}
+
+// Status returns HTTPResponse.Status
+func (r GetZonesSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetZonesSummaryResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3534,6 +5898,73 @@ func (r UpdateZoneResponse) StatusCode() int {
 	return 0
 }
 
+type GetZoneCreateFenceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Fence
+	JSON400      *BadRequest
+	JSON401      *Unauthorized
+	JSON403      *Forbidden
+	JSON404      *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetZoneCreateFenceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetZoneCreateFenceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutZoneTransformResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		Crs string `json:"crs"`
+
+		// Position GeoJSON point geometry.
+		Position Point              `json:"position"`
+		ZoneId   openapi_types.UUID `json:"zone_id"`
+	}
+	JSON400 *BadRequest
+	JSON401 *Unauthorized
+	JSON403 *Forbidden
+	JSON404 *NotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r PutZoneTransformResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutZoneTransformResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// DeleteFencesWithResponse request returning *DeleteFencesResponse
+func (c *ClientWithResponses) DeleteFencesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteFencesResponse, error) {
+	rsp, err := c.DeleteFences(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteFencesResponse(rsp)
+}
+
 // ListFencesWithResponse request returning *ListFencesResponse
 func (c *ClientWithResponses) ListFencesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListFencesResponse, error) {
 	rsp, err := c.ListFences(ctx, reqEditors...)
@@ -3558,6 +5989,15 @@ func (c *ClientWithResponses) CreateFenceWithResponse(ctx context.Context, body 
 		return nil, err
 	}
 	return ParseCreateFenceResponse(rsp)
+}
+
+// GetFencesSummaryWithResponse request returning *GetFencesSummaryResponse
+func (c *ClientWithResponses) GetFencesSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetFencesSummaryResponse, error) {
+	rsp, err := c.GetFencesSummary(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetFencesSummaryResponse(rsp)
 }
 
 // DeleteFenceWithResponse request returning *DeleteFenceResponse
@@ -3595,6 +6035,33 @@ func (c *ClientWithResponses) UpdateFenceWithResponse(ctx context.Context, fence
 	return ParseUpdateFenceResponse(rsp)
 }
 
+// GetFenceLocationsWithResponse request returning *GetFenceLocationsResponse
+func (c *ClientWithResponses) GetFenceLocationsWithResponse(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*GetFenceLocationsResponse, error) {
+	rsp, err := c.GetFenceLocations(ctx, fenceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetFenceLocationsResponse(rsp)
+}
+
+// GetFenceProvidersWithResponse request returning *GetFenceProvidersResponse
+func (c *ClientWithResponses) GetFenceProvidersWithResponse(ctx context.Context, fenceId FenceId, reqEditors ...RequestEditorFn) (*GetFenceProvidersResponse, error) {
+	rsp, err := c.GetFenceProviders(ctx, fenceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetFenceProvidersResponse(rsp)
+}
+
+// DeleteProvidersWithResponse request returning *DeleteProvidersResponse
+func (c *ClientWithResponses) DeleteProvidersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteProvidersResponse, error) {
+	rsp, err := c.DeleteProviders(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteProvidersResponse(rsp)
+}
+
 // ListProvidersWithResponse request returning *ListProvidersResponse
 func (c *ClientWithResponses) ListProvidersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProvidersResponse, error) {
 	rsp, err := c.ListProviders(ctx, reqEditors...)
@@ -3621,6 +6088,24 @@ func (c *ClientWithResponses) CreateProviderWithResponse(ctx context.Context, bo
 	return ParseCreateProviderResponse(rsp)
 }
 
+// DeleteProviderLocationsWithResponse request returning *DeleteProviderLocationsResponse
+func (c *ClientWithResponses) DeleteProviderLocationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteProviderLocationsResponse, error) {
+	rsp, err := c.DeleteProviderLocations(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteProviderLocationsResponse(rsp)
+}
+
+// GetProviderLocationsWithResponse request returning *GetProviderLocationsResponse
+func (c *ClientWithResponses) GetProviderLocationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetProviderLocationsResponse, error) {
+	rsp, err := c.GetProviderLocations(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetProviderLocationsResponse(rsp)
+}
+
 // PostProviderLocationsWithBodyWithResponse request with arbitrary body returning *PostProviderLocationsResponse
 func (c *ClientWithResponses) PostProviderLocationsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostProviderLocationsResponse, error) {
 	rsp, err := c.PostProviderLocationsWithBody(ctx, contentType, body, reqEditors...)
@@ -3638,6 +6123,23 @@ func (c *ClientWithResponses) PostProviderLocationsWithResponse(ctx context.Cont
 	return ParsePostProviderLocationsResponse(rsp)
 }
 
+// PutProviderLocationsWithBodyWithResponse request with arbitrary body returning *PutProviderLocationsResponse
+func (c *ClientWithResponses) PutProviderLocationsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderLocationsResponse, error) {
+	rsp, err := c.PutProviderLocationsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderLocationsResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutProviderLocationsWithResponse(ctx context.Context, body PutProviderLocationsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderLocationsResponse, error) {
+	rsp, err := c.PutProviderLocations(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderLocationsResponse(rsp)
+}
+
 // PostProviderProximitiesWithBodyWithResponse request with arbitrary body returning *PostProviderProximitiesResponse
 func (c *ClientWithResponses) PostProviderProximitiesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostProviderProximitiesResponse, error) {
 	rsp, err := c.PostProviderProximitiesWithBody(ctx, contentType, body, reqEditors...)
@@ -3653,6 +6155,32 @@ func (c *ClientWithResponses) PostProviderProximitiesWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParsePostProviderProximitiesResponse(rsp)
+}
+
+// PutProviderProximitiesWithBodyWithResponse request with arbitrary body returning *PutProviderProximitiesResponse
+func (c *ClientWithResponses) PutProviderProximitiesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderProximitiesResponse, error) {
+	rsp, err := c.PutProviderProximitiesWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderProximitiesResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutProviderProximitiesWithResponse(ctx context.Context, body PutProviderProximitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderProximitiesResponse, error) {
+	rsp, err := c.PutProviderProximities(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderProximitiesResponse(rsp)
+}
+
+// GetProvidersSummaryWithResponse request returning *GetProvidersSummaryResponse
+func (c *ClientWithResponses) GetProvidersSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetProvidersSummaryResponse, error) {
+	rsp, err := c.GetProvidersSummary(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetProvidersSummaryResponse(rsp)
 }
 
 // DeleteProviderWithResponse request returning *DeleteProviderResponse
@@ -3690,6 +6218,93 @@ func (c *ClientWithResponses) UpdateProviderWithResponse(ctx context.Context, pr
 	return ParseUpdateProviderResponse(rsp)
 }
 
+// GetProviderFencesWithResponse request returning *GetProviderFencesResponse
+func (c *ClientWithResponses) GetProviderFencesWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*GetProviderFencesResponse, error) {
+	rsp, err := c.GetProviderFences(ctx, providerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetProviderFencesResponse(rsp)
+}
+
+// DeleteProviderLocationWithResponse request returning *DeleteProviderLocationResponse
+func (c *ClientWithResponses) DeleteProviderLocationWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*DeleteProviderLocationResponse, error) {
+	rsp, err := c.DeleteProviderLocation(ctx, providerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteProviderLocationResponse(rsp)
+}
+
+// GetProviderLocationWithResponse request returning *GetProviderLocationResponse
+func (c *ClientWithResponses) GetProviderLocationWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*GetProviderLocationResponse, error) {
+	rsp, err := c.GetProviderLocation(ctx, providerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetProviderLocationResponse(rsp)
+}
+
+// PutProviderLocationWithBodyWithResponse request with arbitrary body returning *PutProviderLocationResponse
+func (c *ClientWithResponses) PutProviderLocationWithBodyWithResponse(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderLocationResponse, error) {
+	rsp, err := c.PutProviderLocationWithBody(ctx, providerId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderLocationResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutProviderLocationWithResponse(ctx context.Context, providerId ProviderId, body PutProviderLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderLocationResponse, error) {
+	rsp, err := c.PutProviderLocation(ctx, providerId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderLocationResponse(rsp)
+}
+
+// PutProviderProximityWithBodyWithResponse request with arbitrary body returning *PutProviderProximityResponse
+func (c *ClientWithResponses) PutProviderProximityWithBodyWithResponse(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderProximityResponse, error) {
+	rsp, err := c.PutProviderProximityWithBody(ctx, providerId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderProximityResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutProviderProximityWithResponse(ctx context.Context, providerId ProviderId, body PutProviderProximityJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderProximityResponse, error) {
+	rsp, err := c.PutProviderProximity(ctx, providerId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderProximityResponse(rsp)
+}
+
+// GetProviderSensorsWithResponse request returning *GetProviderSensorsResponse
+func (c *ClientWithResponses) GetProviderSensorsWithResponse(ctx context.Context, providerId ProviderId, reqEditors ...RequestEditorFn) (*GetProviderSensorsResponse, error) {
+	rsp, err := c.GetProviderSensors(ctx, providerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetProviderSensorsResponse(rsp)
+}
+
+// PutProviderSensorsWithBodyWithResponse request with arbitrary body returning *PutProviderSensorsResponse
+func (c *ClientWithResponses) PutProviderSensorsWithBodyWithResponse(ctx context.Context, providerId ProviderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutProviderSensorsResponse, error) {
+	rsp, err := c.PutProviderSensorsWithBody(ctx, providerId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderSensorsResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutProviderSensorsWithResponse(ctx context.Context, providerId ProviderId, body PutProviderSensorsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutProviderSensorsResponse, error) {
+	rsp, err := c.PutProviderSensors(ctx, providerId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutProviderSensorsResponse(rsp)
+}
+
 // PutRPCWithBodyWithResponse request with arbitrary body returning *PutRPCResponse
 func (c *ClientWithResponses) PutRPCWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRPCResponse, error) {
 	rsp, err := c.PutRPCWithBody(ctx, contentType, body, reqEditors...)
@@ -3716,6 +6331,15 @@ func (c *ClientWithResponses) GetRPCAvailableWithResponse(ctx context.Context, r
 	return ParseGetRPCAvailableResponse(rsp)
 }
 
+// DeleteTrackablesWithResponse request returning *DeleteTrackablesResponse
+func (c *ClientWithResponses) DeleteTrackablesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteTrackablesResponse, error) {
+	rsp, err := c.DeleteTrackables(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteTrackablesResponse(rsp)
+}
+
 // ListTrackablesWithResponse request returning *ListTrackablesResponse
 func (c *ClientWithResponses) ListTrackablesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListTrackablesResponse, error) {
 	rsp, err := c.ListTrackables(ctx, reqEditors...)
@@ -3740,6 +6364,24 @@ func (c *ClientWithResponses) CreateTrackableWithResponse(ctx context.Context, b
 		return nil, err
 	}
 	return ParseCreateTrackableResponse(rsp)
+}
+
+// GetTrackableMotionsWithResponse request returning *GetTrackableMotionsResponse
+func (c *ClientWithResponses) GetTrackableMotionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTrackableMotionsResponse, error) {
+	rsp, err := c.GetTrackableMotions(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTrackableMotionsResponse(rsp)
+}
+
+// GetTrackablesSummaryWithResponse request returning *GetTrackablesSummaryResponse
+func (c *ClientWithResponses) GetTrackablesSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTrackablesSummaryResponse, error) {
+	rsp, err := c.GetTrackablesSummary(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTrackablesSummaryResponse(rsp)
 }
 
 // DeleteTrackableWithResponse request returning *DeleteTrackableResponse
@@ -3777,6 +6419,69 @@ func (c *ClientWithResponses) UpdateTrackableWithResponse(ctx context.Context, t
 	return ParseUpdateTrackableResponse(rsp)
 }
 
+// GetTrackableFencesWithResponse request returning *GetTrackableFencesResponse
+func (c *ClientWithResponses) GetTrackableFencesWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableFencesResponse, error) {
+	rsp, err := c.GetTrackableFences(ctx, trackableId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTrackableFencesResponse(rsp)
+}
+
+// GetTrackableLocationWithResponse request returning *GetTrackableLocationResponse
+func (c *ClientWithResponses) GetTrackableLocationWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableLocationResponse, error) {
+	rsp, err := c.GetTrackableLocation(ctx, trackableId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTrackableLocationResponse(rsp)
+}
+
+// GetTrackableLocationsWithResponse request returning *GetTrackableLocationsResponse
+func (c *ClientWithResponses) GetTrackableLocationsWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableLocationsResponse, error) {
+	rsp, err := c.GetTrackableLocations(ctx, trackableId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTrackableLocationsResponse(rsp)
+}
+
+// GetTrackableMotionWithResponse request returning *GetTrackableMotionResponse
+func (c *ClientWithResponses) GetTrackableMotionWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableMotionResponse, error) {
+	rsp, err := c.GetTrackableMotion(ctx, trackableId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTrackableMotionResponse(rsp)
+}
+
+// GetTrackableProvidersWithResponse request returning *GetTrackableProvidersResponse
+func (c *ClientWithResponses) GetTrackableProvidersWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableProvidersResponse, error) {
+	rsp, err := c.GetTrackableProviders(ctx, trackableId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTrackableProvidersResponse(rsp)
+}
+
+// GetTrackableSensorsWithResponse request returning *GetTrackableSensorsResponse
+func (c *ClientWithResponses) GetTrackableSensorsWithResponse(ctx context.Context, trackableId TrackableId, reqEditors ...RequestEditorFn) (*GetTrackableSensorsResponse, error) {
+	rsp, err := c.GetTrackableSensors(ctx, trackableId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTrackableSensorsResponse(rsp)
+}
+
+// DeleteZonesWithResponse request returning *DeleteZonesResponse
+func (c *ClientWithResponses) DeleteZonesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteZonesResponse, error) {
+	rsp, err := c.DeleteZones(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteZonesResponse(rsp)
+}
+
 // ListZonesWithResponse request returning *ListZonesResponse
 func (c *ClientWithResponses) ListZonesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListZonesResponse, error) {
 	rsp, err := c.ListZones(ctx, reqEditors...)
@@ -3801,6 +6506,15 @@ func (c *ClientWithResponses) CreateZoneWithResponse(ctx context.Context, body C
 		return nil, err
 	}
 	return ParseCreateZoneResponse(rsp)
+}
+
+// GetZonesSummaryWithResponse request returning *GetZonesSummaryResponse
+func (c *ClientWithResponses) GetZonesSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetZonesSummaryResponse, error) {
+	rsp, err := c.GetZonesSummary(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetZonesSummaryResponse(rsp)
 }
 
 // DeleteZoneWithResponse request returning *DeleteZoneResponse
@@ -3836,6 +6550,65 @@ func (c *ClientWithResponses) UpdateZoneWithResponse(ctx context.Context, zoneId
 		return nil, err
 	}
 	return ParseUpdateZoneResponse(rsp)
+}
+
+// GetZoneCreateFenceWithResponse request returning *GetZoneCreateFenceResponse
+func (c *ClientWithResponses) GetZoneCreateFenceWithResponse(ctx context.Context, zoneId ZoneId, reqEditors ...RequestEditorFn) (*GetZoneCreateFenceResponse, error) {
+	rsp, err := c.GetZoneCreateFence(ctx, zoneId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetZoneCreateFenceResponse(rsp)
+}
+
+// PutZoneTransformWithBodyWithResponse request with arbitrary body returning *PutZoneTransformResponse
+func (c *ClientWithResponses) PutZoneTransformWithBodyWithResponse(ctx context.Context, zoneId ZoneId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutZoneTransformResponse, error) {
+	rsp, err := c.PutZoneTransformWithBody(ctx, zoneId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutZoneTransformResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutZoneTransformWithResponse(ctx context.Context, zoneId ZoneId, body PutZoneTransformJSONRequestBody, reqEditors ...RequestEditorFn) (*PutZoneTransformResponse, error) {
+	rsp, err := c.PutZoneTransform(ctx, zoneId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutZoneTransformResponse(rsp)
+}
+
+// ParseDeleteFencesResponse parses an HTTP response from a DeleteFencesWithResponse call
+func ParseDeleteFencesResponse(rsp *http.Response) (*DeleteFencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteFencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseListFencesResponse parses an HTTP response from a ListFencesWithResponse call
@@ -3905,6 +6678,46 @@ func ParseCreateFenceResponse(rsp *http.Response) (*CreateFenceResponse, error) 
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetFencesSummaryResponse parses an HTTP response from a GetFencesSummaryWithResponse call
+func ParseGetFencesSummaryResponse(rsp *http.Response) (*GetFencesSummaryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetFencesSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResourceSummary
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
@@ -4066,6 +6879,133 @@ func ParseUpdateFenceResponse(rsp *http.Response) (*UpdateFenceResponse, error) 
 	return response, nil
 }
 
+// ParseGetFenceLocationsResponse parses an HTTP response from a GetFenceLocationsWithResponse call
+func ParseGetFenceLocationsResponse(rsp *http.Response) (*GetFenceLocationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetFenceLocationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Location
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetFenceProvidersResponse parses an HTTP response from a GetFenceProvidersWithResponse call
+func ParseGetFenceProvidersResponse(rsp *http.Response) (*GetFenceProvidersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetFenceProvidersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []LocationProvider
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteProvidersResponse parses an HTTP response from a DeleteProvidersWithResponse call
+func ParseDeleteProvidersResponse(rsp *http.Response) (*DeleteProvidersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteProvidersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListProvidersResponse parses an HTTP response from a ListProvidersWithResponse call
 func ParseListProvidersResponse(rsp *http.Response) (*ListProvidersResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4153,6 +7093,79 @@ func ParseCreateProviderResponse(rsp *http.Response) (*CreateProviderResponse, e
 	return response, nil
 }
 
+// ParseDeleteProviderLocationsResponse parses an HTTP response from a DeleteProviderLocationsWithResponse call
+func ParseDeleteProviderLocationsResponse(rsp *http.Response) (*DeleteProviderLocationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteProviderLocationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetProviderLocationsResponse parses an HTTP response from a GetProviderLocationsWithResponse call
+func ParseGetProviderLocationsResponse(rsp *http.Response) (*GetProviderLocationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetProviderLocationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Location
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParsePostProviderLocationsResponse parses an HTTP response from a PostProviderLocationsWithResponse call
 func ParsePostProviderLocationsResponse(rsp *http.Response) (*PostProviderLocationsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4162,6 +7175,46 @@ func ParsePostProviderLocationsResponse(rsp *http.Response) (*PostProviderLocati
 	}
 
 	response := &PostProviderLocationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutProviderLocationsResponse parses an HTTP response from a PutProviderLocationsWithResponse call
+func ParsePutProviderLocationsResponse(rsp *http.Response) (*PutProviderLocationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutProviderLocationsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -4213,6 +7266,86 @@ func ParsePostProviderProximitiesResponse(rsp *http.Response) (*PostProviderProx
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutProviderProximitiesResponse parses an HTTP response from a PutProviderProximitiesWithResponse call
+func ParsePutProviderProximitiesResponse(rsp *http.Response) (*PutProviderProximitiesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutProviderProximitiesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetProvidersSummaryResponse parses an HTTP response from a GetProvidersSummaryWithResponse call
+func ParseGetProvidersSummaryResponse(rsp *http.Response) (*GetProvidersSummaryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetProvidersSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResourceSummary
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
@@ -4374,6 +7507,335 @@ func ParseUpdateProviderResponse(rsp *http.Response) (*UpdateProviderResponse, e
 	return response, nil
 }
 
+// ParseGetProviderFencesResponse parses an HTTP response from a GetProviderFencesWithResponse call
+func ParseGetProviderFencesResponse(rsp *http.Response) (*GetProviderFencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetProviderFencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Fence
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteProviderLocationResponse parses an HTTP response from a DeleteProviderLocationWithResponse call
+func ParseDeleteProviderLocationResponse(rsp *http.Response) (*DeleteProviderLocationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteProviderLocationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetProviderLocationResponse parses an HTTP response from a GetProviderLocationWithResponse call
+func ParseGetProviderLocationResponse(rsp *http.Response) (*GetProviderLocationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetProviderLocationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Location
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutProviderLocationResponse parses an HTTP response from a PutProviderLocationWithResponse call
+func ParsePutProviderLocationResponse(rsp *http.Response) (*PutProviderLocationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutProviderLocationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutProviderProximityResponse parses an HTTP response from a PutProviderProximityWithResponse call
+func ParsePutProviderProximityResponse(rsp *http.Response) (*PutProviderProximityResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutProviderProximityResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetProviderSensorsResponse parses an HTTP response from a GetProviderSensorsWithResponse call
+func ParseGetProviderSensorsResponse(rsp *http.Response) (*GetProviderSensorsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetProviderSensorsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ExtensionProperties
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutProviderSensorsResponse parses an HTTP response from a PutProviderSensorsWithResponse call
+func ParsePutProviderSensorsResponse(rsp *http.Response) (*PutProviderSensorsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutProviderSensorsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LocationProvider
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParsePutRPCResponse parses an HTTP response from a PutRPCWithResponse call
 func ParsePutRPCResponse(rsp *http.Response) (*PutRPCResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4463,6 +7925,39 @@ func ParseGetRPCAvailableResponse(rsp *http.Response) (*GetRPCAvailableResponse,
 	return response, nil
 }
 
+// ParseDeleteTrackablesResponse parses an HTTP response from a DeleteTrackablesWithResponse call
+func ParseDeleteTrackablesResponse(rsp *http.Response) (*DeleteTrackablesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteTrackablesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListTrackablesResponse parses an HTTP response from a ListTrackablesWithResponse call
 func ParseListTrackablesResponse(rsp *http.Response) (*ListTrackablesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4530,6 +8025,86 @@ func ParseCreateTrackableResponse(rsp *http.Response) (*CreateTrackableResponse,
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTrackableMotionsResponse parses an HTTP response from a GetTrackableMotionsWithResponse call
+func ParseGetTrackableMotionsResponse(rsp *http.Response) (*GetTrackableMotionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTrackableMotionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []TrackableMotion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTrackablesSummaryResponse parses an HTTP response from a GetTrackablesSummaryWithResponse call
+func ParseGetTrackablesSummaryResponse(rsp *http.Response) (*GetTrackablesSummaryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTrackablesSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResourceSummary
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
@@ -4691,6 +8266,321 @@ func ParseUpdateTrackableResponse(rsp *http.Response) (*UpdateTrackableResponse,
 	return response, nil
 }
 
+// ParseGetTrackableFencesResponse parses an HTTP response from a GetTrackableFencesWithResponse call
+func ParseGetTrackableFencesResponse(rsp *http.Response) (*GetTrackableFencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTrackableFencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Fence
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTrackableLocationResponse parses an HTTP response from a GetTrackableLocationWithResponse call
+func ParseGetTrackableLocationResponse(rsp *http.Response) (*GetTrackableLocationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTrackableLocationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Location
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTrackableLocationsResponse parses an HTTP response from a GetTrackableLocationsWithResponse call
+func ParseGetTrackableLocationsResponse(rsp *http.Response) (*GetTrackableLocationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTrackableLocationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Location
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTrackableMotionResponse parses an HTTP response from a GetTrackableMotionWithResponse call
+func ParseGetTrackableMotionResponse(rsp *http.Response) (*GetTrackableMotionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTrackableMotionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TrackableMotion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTrackableProvidersResponse parses an HTTP response from a GetTrackableProvidersWithResponse call
+func ParseGetTrackableProvidersResponse(rsp *http.Response) (*GetTrackableProvidersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTrackableProvidersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []LocationProvider
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTrackableSensorsResponse parses an HTTP response from a GetTrackableSensorsWithResponse call
+func ParseGetTrackableSensorsResponse(rsp *http.Response) (*GetTrackableSensorsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTrackableSensorsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest map[string]ExtensionProperties
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteZonesResponse parses an HTTP response from a DeleteZonesWithResponse call
+func ParseDeleteZonesResponse(rsp *http.Response) (*DeleteZonesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteZonesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListZonesResponse parses an HTTP response from a ListZonesWithResponse call
 func ParseListZonesResponse(rsp *http.Response) (*ListZonesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4758,6 +8648,46 @@ func ParseCreateZoneResponse(rsp *http.Response) (*CreateZoneResponse, error) {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetZonesSummaryResponse parses an HTTP response from a GetZonesSummaryWithResponse call
+func ParseGetZonesSummaryResponse(rsp *http.Response) (*GetZonesSummaryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetZonesSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResourceSummary
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
@@ -4881,6 +8811,120 @@ func ParseUpdateZoneResponse(rsp *http.Response) (*UpdateZoneResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Zone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetZoneCreateFenceResponse parses an HTTP response from a GetZoneCreateFenceWithResponse call
+func ParseGetZoneCreateFenceResponse(rsp *http.Response) (*GetZoneCreateFenceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetZoneCreateFenceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Fence
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutZoneTransformResponse parses an HTTP response from a PutZoneTransformWithResponse call
+func ParsePutZoneTransformResponse(rsp *http.Response) (*PutZoneTransformResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutZoneTransformResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Crs string `json:"crs"`
+
+			// Position GeoJSON point geometry.
+			Position Point              `json:"position"`
+			ZoneId   openapi_types.UUID `json:"zone_id"`
+		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

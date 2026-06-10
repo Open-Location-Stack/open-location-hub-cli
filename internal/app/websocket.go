@@ -29,6 +29,12 @@ type wsEnvelope struct {
 	ReceivedAt     string         `json:"received_at,omitempty"`
 }
 
+type wsNDJSONRecord struct {
+	ReceivedAt string     `json:"received_at"`
+	Topic      string     `json:"topic"`
+	Message    wsEnvelope `json:"message"`
+}
+
 func websocketCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ws",
@@ -52,56 +58,47 @@ func wsSubscribeCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command
 				return err
 			}
 
-			params, err := parseParams(paramsFlag)
-			if err != nil {
-				return err
-			}
-			if cfg.Token != "" {
-				params["token"] = cfg.Token
-			}
-
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
-
-			conn, err := dialWebsocket(ctx, cfg, wsURL)
-			if err != nil {
-				return err
-			}
-			defer conn.Close()
-
-			subscribe := wsEnvelope{Event: "subscribe", Topic: topic, Params: params}
-			if err := conn.WriteJSON(subscribe); err != nil {
-				return err
-			}
-			printer.Info("subscribed to %s", topic)
-
-			for {
-				select {
-				case <-ctx.Done():
-					return nil
-				default:
-				}
-				var envelope wsEnvelope
-				if err := conn.ReadJSON(&envelope); err != nil {
-					return err
-				}
-				envelope.ReceivedAt = time.Now().UTC().Format(time.RFC3339Nano)
+			return runWebsocketSubscription(cfg, topic, wsURL, paramsFlag, func(envelope wsEnvelope) error {
 				if printer.JSON {
-					if err := printer.PrintLine(envelope); err != nil {
-						return err
-					}
-					continue
+					return printer.PrintLine(envelope)
 				}
-				if err := printer.Print(envelope); err != nil {
-					return err
-				}
-			}
+				return printer.Print(envelope)
+			}, func() {
+				printer.Info("subscribed to %s", topic)
+			})
 		},
 	}
 	cmd.Flags().String("topic", "", "Topic name, e.g. location_updates, fence_events, metadata_changes")
 	cmd.Flags().StringArray("param", nil, "Topic filter in key=value form. Repeat as needed")
 	cmd.Flags().String("ws-url", "", "Explicit websocket URL. Defaults to <base-url>/v2/ws/socket")
 	must(cmd.MarkFlagRequired("topic"))
+	return cmd
+}
+
+func wsNDJSONStreamCommand(cfg *cli.Config, printer *output.Printer, use, short, topic string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   use,
+		Short: short,
+		Long:  fmt.Sprintf("Subscribe to %s and emit NDJSON records to stdout.", topic),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			paramsFlag, _ := cmd.Flags().GetStringArray("param")
+			wsURL, _ := cmd.Flags().GetString("ws-url")
+			encoder := json.NewEncoder(printer.Out)
+			encoder.SetEscapeHTML(false)
+			return runWebsocketSubscription(cfg, topic, wsURL, paramsFlag, func(envelope wsEnvelope) error {
+				record := wsNDJSONRecord{
+					ReceivedAt: time.Now().UTC().Format(time.RFC3339Nano),
+					Topic:      topic,
+					Message:    envelope,
+				}
+				return encoder.Encode(record)
+			}, func() {
+				printer.Info("streaming %s as NDJSON", topic)
+			})
+		},
+	}
+	cmd.Flags().StringArray("param", nil, "Topic filter in key=value form. Repeat as needed")
+	cmd.Flags().String("ws-url", "", "Explicit websocket URL. Defaults to <base-url>/v2/ws/socket")
 	return cmd
 }
 
@@ -175,6 +172,61 @@ func parseParams(items []string) (map[string]any, error) {
 		params[parts[0]] = parts[1]
 	}
 	return params, nil
+}
+
+func runWebsocketSubscription(cfg *cli.Config, topic, wsURL string, paramsFlag []string, handle func(wsEnvelope) error, onSubscribe func()) error {
+	if err := cfg.EnsureToken(context.Background()); err != nil {
+		return err
+	}
+
+	params, err := parseParams(paramsFlag)
+	if err != nil {
+		return err
+	}
+	if cfg.Token != "" {
+		params["token"] = cfg.Token
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	conn, err := dialWebsocket(ctx, cfg, wsURL)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	subscribe := wsEnvelope{Event: "subscribe", Topic: topic, Params: params}
+	if err := conn.WriteJSON(subscribe); err != nil {
+		return err
+	}
+	if onSubscribe != nil {
+		onSubscribe()
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+		envelope, err := readWSEnvelope(conn)
+		if err != nil {
+			return err
+		}
+		if err := handle(envelope); err != nil {
+			return err
+		}
+	}
+}
+
+func readWSEnvelope(conn *websocket.Conn) (wsEnvelope, error) {
+	var envelope wsEnvelope
+	if err := conn.ReadJSON(&envelope); err != nil {
+		return wsEnvelope{}, err
+	}
+	envelope.ReceivedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	return envelope, nil
 }
 
 func dialWebsocket(ctx context.Context, cfg *cli.Config, explicit string) (*websocket.Conn, error) {

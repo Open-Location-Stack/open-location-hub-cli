@@ -10,16 +10,18 @@ import (
 )
 
 type resourceSpec struct {
-	Name     string
-	Singular string
-	ReadArg  string
-	WriteArg string
-	Example  string
-	List     func(context.Context, *cli.Config) (any, error)
-	Get      func(context.Context, *cli.Config, string) (any, error)
-	Create   func(context.Context, *cli.Config, string) (any, error)
-	Update   func(context.Context, *cli.Config, string, string) (any, error)
-	Delete   func(context.Context, *cli.Config, string) error
+	Name      string
+	Singular  string
+	ReadArg   string
+	WriteArg  string
+	Example   string
+	Summary   func(context.Context, *cli.Config) (any, error)
+	DeleteAll func(context.Context, *cli.Config) error
+	List      func(context.Context, *cli.Config) (any, error)
+	Get       func(context.Context, *cli.Config, string) (any, error)
+	Create    func(context.Context, *cli.Config, string) (any, error)
+	Update    func(context.Context, *cli.Config, string, string) (any, error)
+	Delete    func(context.Context, *cli.Config, string) error
 }
 
 func newResourceCommand(cfg *cli.Config, printer *output.Printer, spec resourceSpec) *cobra.Command {
@@ -40,6 +42,20 @@ func newResourceCommand(cfg *cli.Config, printer *output.Printer, spec resourceS
 			return printer.Print(v)
 		},
 	})
+
+	if spec.Summary != nil {
+		cmd.AddCommand(&cobra.Command{
+			Use:   "summary",
+			Short: fmt.Sprintf("Get a summary of %s", spec.Name),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				v, err := spec.Summary(cmd.Context(), cfg)
+				if err != nil {
+					return err
+				}
+				return printer.Print(v)
+			},
+		})
+	}
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "get " + spec.ReadArg,
@@ -101,6 +117,20 @@ func newResourceCommand(cfg *cli.Config, printer *output.Printer, spec resourceS
 			return nil
 		},
 	})
+
+	if spec.DeleteAll != nil {
+		cmd.AddCommand(&cobra.Command{
+			Use:   "delete-all",
+			Short: fmt.Sprintf("Delete all %s", spec.Name),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				if err := spec.DeleteAll(cmd.Context(), cfg); err != nil {
+					return err
+				}
+				printer.Success("%s deleted", spec.Name)
+				return nil
+			},
+		})
+	}
 
 	return cmd
 }
