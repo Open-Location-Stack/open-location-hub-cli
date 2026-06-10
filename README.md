@@ -98,15 +98,35 @@ olh zones list
 olh zones get 0190c9d2-6f54-7ccf-8f55-f34eb0bf01f1
 olh trackables create -f trackable.json
 olh locations post -f locations.json
+olh locations stream > location_updates.ndjson
+olh trackables stream > trackable_motions.ndjson
+olh fences stream > fence_events.ndjson
+olh collisions stream > collision_events.ndjson
+./scripts/replay_simulated_tag_1.sh
 olh rpc available
 olh rpc call -f request.json
 olh ws subscribe --topic location_updates --param provider_id=uwb-sim-demo
 olh ws publish --topic location_updates -f locations.json
 ```
 
+Replay the `simulated-tag-1` verification sequence. The script first posts an
+outside point to reset fence state, then replays the three inside updates with
+3-second spacing:
+
+```bash
+./scripts/replay_simulated_tag_1.sh
+```
+
+Optional overrides:
+
+```bash
+SLEEP_SECONDS=1 PROVIDER_ID=simulated-tag-1 SOURCE_ID=simulated-tag-1 ./scripts/replay_simulated_tag_1.sh
+```
+
 ## Notes
 
 - `create` and `update` commands accept JSON or YAML payloads.
+- `locations stream`, `trackables stream`, `fences stream`, and `collisions stream` emit NDJSON records shaped as `{received_at, topic, message}`.
 - `zones`, `trackables`, and `fences` resource IDs are validated as UUIDs before requests are sent.
 - The generated REST client is derived from `api/omlox-hub.v0.yaml`.
 - `oapi-codegen` currently warns about OpenAPI 3.1 support. The CLI still builds and uses the generated client.
