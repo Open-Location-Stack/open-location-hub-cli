@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -58,7 +60,7 @@ func wsSubscribeCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command
 				return err
 			}
 
-			return runWebsocketSubscription(cfg, topic, wsURL, paramsFlag, func(envelope wsEnvelope) error {
+			return runWebsocketSubscription(cmd.Context(), cfg, topic, wsURL, paramsFlag, func(envelope wsEnvelope) error {
 				if printer.JSON {
 					return printer.PrintLine(envelope)
 				}
@@ -85,7 +87,10 @@ func wsNDJSONStreamCommand(cfg *cli.Config, printer *output.Printer, use, short,
 			wsURL, _ := cmd.Flags().GetString("ws-url")
 			encoder := json.NewEncoder(printer.Out)
 			encoder.SetEscapeHTML(false)
-			return runWebsocketSubscription(cfg, topic, wsURL, paramsFlag, func(envelope wsEnvelope) error {
+			return runWebsocketSubscription(cmd.Context(), cfg, topic, wsURL, paramsFlag, func(envelope wsEnvelope) error {
+				if envelope.Event == "subscribed" {
+					return nil
+				}
 				record := wsNDJSONRecord{
 					ReceivedAt: time.Now().UTC().Format(time.RFC3339Nano),
 					Topic:      topic,
@@ -174,8 +179,8 @@ func parseParams(items []string) (map[string]any, error) {
 	return params, nil
 }
 
-func runWebsocketSubscription(cfg *cli.Config, topic, wsURL string, paramsFlag []string, handle func(wsEnvelope) error, onSubscribe func()) error {
-	if err := cfg.EnsureToken(context.Background()); err != nil {
+func runWebsocketSubscription(parentCtx context.Context, cfg *cli.Config, topic, wsURL string, paramsFlag []string, handle func(wsEnvelope) error, onSubscribe func()) error {
+	if err := cfg.EnsureToken(parentCtx); err != nil {
 		return err
 	}
 
@@ -187,7 +192,7 @@ func runWebsocketSubscription(cfg *cli.Config, topic, wsURL string, paramsFlag [
 		params["token"] = cfg.Token
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(parentCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	conn, err := dialWebsocket(ctx, cfg, wsURL)
@@ -195,6 +200,16 @@ func runWebsocketSubscription(cfg *cli.Config, topic, wsURL string, paramsFlag [
 		return err
 	}
 	defer conn.Close()
+
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-done:
+		}
+	}()
 
 	subscribe := wsEnvelope{Event: "subscribe", Topic: topic, Params: params}
 	if err := conn.WriteJSON(subscribe); err != nil {
@@ -205,13 +220,11 @@ func runWebsocketSubscription(cfg *cli.Config, topic, wsURL string, paramsFlag [
 	}
 
 	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
 		envelope, err := readWSEnvelope(conn)
 		if err != nil {
+			if ctx.Err() != nil || errors.Is(err, net.ErrClosed) {
+				return nil
+			}
 			return err
 		}
 		if err := handle(envelope); err != nil {
