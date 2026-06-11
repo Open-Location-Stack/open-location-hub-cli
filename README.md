@@ -123,6 +123,7 @@ olh locations replace -f locations.json
 olh locations post -f locations.json
 olh proximities replace -f proximities.json
 olh locations stream > location_updates.ndjson
+olh locations stream --create-trackables > location_updates.ndjson
 olh trackables stream > trackable_motions.ndjson
 olh fences stream > fence_events.ndjson
 olh collisions stream > collision_events.ndjson

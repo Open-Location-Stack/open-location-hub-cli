@@ -133,7 +133,6 @@ func NewRootCommand() *cobra.Command {
 	addFencesSubcommands(fencesCmd, cfg, printer)
 	cmd.AddCommand(fencesCmd)
 	locationsCmd := locationsCommand(cfg, printer)
-	locationsCmd.AddCommand(wsNDJSONStreamCommand(cfg, printer, "stream", "Stream location updates as NDJSON", "location_updates"))
 	cmd.AddCommand(locationsCmd)
 	cmd.AddCommand(collisionsCommand(cfg, printer))
 	cmd.AddCommand(proximitiesCommand(cfg, printer))
@@ -1057,6 +1056,7 @@ func locationsCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
 		Use:   "locations",
 		Short: "Manage provider location updates",
 	}
+	cmd.AddCommand(locationsStreamCommand(cfg, printer))
 	cmd.AddCommand(&cobra.Command{
 		Use:   "list",
 		Short: "GET /v2/providers/locations",
@@ -1159,6 +1159,224 @@ func locationsCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
 		},
 	})
 	return cmd
+}
+
+func locationsStreamCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "stream",
+		Short: "Stream location updates as NDJSON",
+		Long:  "Subscribe to location_updates and emit NDJSON records to stdout.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			paramsFlag, _ := cmd.Flags().GetStringArray("param")
+			wsURL, _ := cmd.Flags().GetString("ws-url")
+			createTrackables, _ := cmd.Flags().GetBool("create-trackables")
+
+			var creator *streamTrackableCreator
+			if createTrackables {
+				var err error
+				creator, err = newStreamTrackableCreator(cmd.Context(), cfg, printer)
+				if err != nil {
+					return err
+				}
+			}
+
+			encoder := json.NewEncoder(printer.Out)
+			encoder.SetEscapeHTML(false)
+			return runWebsocketSubscription(cmd.Context(), cfg, "location_updates", wsURL, paramsFlag, func(envelope wsEnvelope) error {
+				if envelope.Event == "subscribed" {
+					return nil
+				}
+				if creator != nil {
+					if err := creator.ensureFromEnvelope(cmd.Context(), envelope); err != nil {
+						return err
+					}
+				}
+				record := wsNDJSONRecord{
+					ReceivedAt: time.Now().UTC().Format(time.RFC3339Nano),
+					Topic:      "location_updates",
+					Message:    envelope,
+				}
+				return encoder.Encode(record)
+			}, func() {
+				printer.Info("streaming location_updates as NDJSON")
+			})
+		},
+	}
+	cmd.Flags().StringArray("param", nil, "Topic filter in key=value form. Repeat as needed")
+	cmd.Flags().String("ws-url", "", "Explicit websocket URL. Defaults to <base-url>/v2/ws/socket")
+	cmd.Flags().Bool("create-trackables", false, "Create trackables for previously unseen provider IDs while streaming")
+	return cmd
+}
+
+type streamTrackableCreator struct {
+	client  *openapi.ClientWithResponses
+	known   map[string]struct{}
+	printer *output.Printer
+}
+
+func newStreamTrackableCreator(ctx context.Context, cfg *cli.Config, printer *output.Printer) (*streamTrackableCreator, error) {
+	client, err := apiClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.ListTrackablesWithResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := expectStatus(resp.HTTPResponse, http.StatusOK, resp.Body); err != nil {
+		return nil, err
+	}
+
+	creator := &streamTrackableCreator{
+		client:  client,
+		known:   map[string]struct{}{},
+		printer: printer,
+	}
+	if resp.JSON200 != nil {
+		for _, trackable := range *resp.JSON200 {
+			creator.rememberTrackableProviderIDs(trackable)
+		}
+	}
+	printer.Info("loaded %d existing trackable provider IDs", len(creator.known))
+	return creator, nil
+}
+
+func (c *streamTrackableCreator) rememberTrackableProviderIDs(trackable openapi.Trackable) {
+	if trackable.LocationProviders != nil {
+		for _, providerID := range *trackable.LocationProviders {
+			c.rememberProviderID(providerID)
+		}
+	}
+	if trackable.Properties == nil {
+		return
+	}
+	c.rememberPropertyProviderID(*trackable.Properties, "provider_id")
+	c.rememberPropertyProviderID(*trackable.Properties, "provider_ids")
+}
+
+func (c *streamTrackableCreator) rememberPropertyProviderID(properties openapi.ExtensionProperties, key string) {
+	value, ok := properties[key]
+	if !ok {
+		return
+	}
+	switch v := value.(type) {
+	case string:
+		c.rememberProviderID(v)
+	case []string:
+		for _, providerID := range v {
+			c.rememberProviderID(providerID)
+		}
+	case []any:
+		for _, item := range v {
+			if providerID, ok := item.(string); ok {
+				c.rememberProviderID(providerID)
+			}
+		}
+	}
+}
+
+func (c *streamTrackableCreator) rememberProviderID(providerID string) {
+	providerID = strings.TrimSpace(providerID)
+	if providerID == "" {
+		return
+	}
+	c.known[providerID] = struct{}{}
+}
+
+func (c *streamTrackableCreator) ensureFromEnvelope(ctx context.Context, envelope wsEnvelope) error {
+	locations, err := envelopeLocations(envelope)
+	if err != nil {
+		return err
+	}
+	for _, location := range locations {
+		providerID := strings.TrimSpace(location.ProviderId)
+		if providerID == "" {
+			continue
+		}
+		if _, ok := c.known[providerID]; ok {
+			continue
+		}
+		if err := c.createTrackable(ctx, location); err != nil {
+			return err
+		}
+		c.known[providerID] = struct{}{}
+	}
+	return nil
+}
+
+func envelopeLocations(envelope wsEnvelope) ([]openapi.Location, error) {
+	if envelope.Payload == nil {
+		return nil, nil
+	}
+	payload, err := json.Marshal(envelope.Payload)
+	if err != nil {
+		return nil, err
+	}
+	var locations []openapi.Location
+	if err := json.Unmarshal(payload, &locations); err == nil {
+		return locations, nil
+	}
+	var location openapi.Location
+	if err := json.Unmarshal(payload, &location); err != nil {
+		return nil, err
+	}
+	return []openapi.Location{location}, nil
+}
+
+func (c *streamTrackableCreator) createTrackable(ctx context.Context, location openapi.Location) error {
+	providerID := strings.TrimSpace(location.ProviderId)
+	providerType := strings.TrimSpace(location.ProviderType)
+	body := trackableWriteFromLocation(location)
+	resp, err := c.client.CreateTrackableWithResponse(ctx, body)
+	if err != nil {
+		return err
+	}
+	if err := expectStatus(resp.HTTPResponse, http.StatusCreated, resp.Body); err != nil {
+		return err
+	}
+	c.printer.Info("created trackable for provider_id=%s provider_type=%s", providerID, providerType)
+	return nil
+}
+
+func trackableWriteFromLocation(location openapi.Location) openapi.CreateTrackableJSONRequestBody {
+	providerID := strings.TrimSpace(location.ProviderId)
+	providerType := strings.TrimSpace(location.ProviderType)
+	name := providerID
+	if providerType != "" {
+		name = fmt.Sprintf("%s %s", providerType, providerID)
+	}
+	locationProviders := openapi.StringIdList{providerID}
+	locatingRules := []openapi.LocatingRule{{
+		Expression: fmt.Sprintf("provider_id == %q", providerID),
+		Priority:   0,
+	}}
+	properties := openapi.ExtensionProperties{
+		"provider_id":   providerID,
+		"provider_type": providerType,
+		"source":        location.Source,
+		"created_by":    "olh locations stream --create-trackables",
+	}
+	if location.TimestampGenerated != nil {
+		properties["first_timestamp_generated"] = location.TimestampGenerated.Format(time.RFC3339Nano)
+	}
+	if location.TimestampSent != nil {
+		properties["first_timestamp_sent"] = location.TimestampSent.Format(time.RFC3339Nano)
+	}
+	if location.Properties != nil {
+		for _, key := range []string{"upstream_hub", "upstream_provider", "upstream_topic"} {
+			if value, ok := (*location.Properties)[key]; ok {
+				properties[key] = value
+			}
+		}
+	}
+
+	return openapi.CreateTrackableJSONRequestBody{
+		Type:              openapi.TrackableWriteType("omlox"),
+		Name:              &name,
+		LocationProviders: &locationProviders,
+		LocatingRules:     &locatingRules,
+		Properties:        &properties,
+	}
 }
 
 func proximitiesCommand(cfg *cli.Config, printer *output.Printer) *cobra.Command {
