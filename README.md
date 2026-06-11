@@ -2,6 +2,15 @@
 
 `olh` is a Go CLI for the Open Location Hub REST and WebSocket APIs.
 
+## Install
+
+Install with Homebrew:
+
+```bash
+brew tap jillesvangurp/tap
+brew install jillesvangurp/tap/open-location-hub-cli
+```
+
 Current scope:
 - CRUD for `zones`, `trackables`, `providers`, and `fences`
 - collection `summary` and `delete-all` operations for core resources
